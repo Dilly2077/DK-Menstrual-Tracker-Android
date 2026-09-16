@@ -95,20 +95,20 @@ private val LunaraLightColors = lightColorScheme(
 )
 
 private val LunaraDarkColors = darkColorScheme(
-    primary = Color(0xFFFFB0C7),
-    onPrimary = Color(0xFF5F1834),
-    primaryContainer = Color(0xFF7C304E),
-    onPrimaryContainer = Color(0xFFFFD9E4),
-    secondary = Color(0xFFD7BED7),
+    primary = Color(0xFFF3A3BC),
+    onPrimary = Color(0xFF4A1025),
+    primaryContainer = Color(0xFF71324B),
+    onPrimaryContainer = Color(0xFFFFF3F7),
+    secondary = Color(0xFFD6BED5),
     onSecondary = Color(0xFF3D2C40),
-    secondaryContainer = Color(0xFF564258),
+    secondaryContainer = Color(0xFF4F3B50),
     onSecondaryContainer = Color(0xFFF5DDF4),
-    background = Color(0xFF171216),
-    surface = Color(0xFF171216),
-    surfaceVariant = Color(0xFF332A2F),
-    onSurface = Color(0xFFF0E5E9),
-    onSurfaceVariant = Color(0xFFD7C4CB),
-    outline = Color(0xFFA18C94)
+    background = Color(0xFF1D181C),
+    surface = Color(0xFF272126),
+    surfaceVariant = Color(0xFF342B31),
+    onSurface = Color(0xFFFFF6F8),
+    onSurfaceVariant = Color(0xFFDAC8CF),
+    outline = Color(0xFF8B7880)
 )
 
 @Composable
@@ -164,8 +164,9 @@ fun LunaraApp() {
 
         Scaffold(
             snackbarHost = { SnackbarHost(snackbar) },
+            containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                NavigationBar {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     primaryScreens.forEach { destination ->
                         NavigationBarItem(
                             selected = screen == destination,
@@ -177,7 +178,10 @@ fun LunaraApp() {
                 }
             }
         ) { padding ->
-            Surface(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Surface(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                color = MaterialTheme.colorScheme.background
+            ) {
                 when (screen) {
                     Screen.TODAY -> TodayScreen(
                         analysis = analysis,
@@ -306,7 +310,12 @@ internal fun TodayScreen(
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        Text(analysis.phase, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            analysis.phase,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                         Text(
                             homePhaseLine(analysis),
                             style = MaterialTheme.typography.bodyMedium,
@@ -344,7 +353,10 @@ internal fun TodayScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -390,11 +402,15 @@ private fun homePhaseLine(analysis: CycleAnalysis): String = when (analysis.phas
 
 @Composable
 internal fun MetricCard(modifier: Modifier = Modifier, title: String, value: String, note: String) {
-    Card(modifier = modifier, shape = RoundedCornerShape(20.dp)) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(note, style = MaterialTheme.typography.bodySmall)
+            Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
