@@ -46,6 +46,7 @@ internal val PredictedPeriodColor = Color(0xFFF9D5E2)
 internal val FertileWindowColor = Color(0xFFEADCF6)
 internal val OvulationEstimateColor = Color(0xFF8B6AA3)
 internal val LutealPhaseColor = Color(0xFFFFE5D5)
+private val CalendarPastelText = Color(0xFF38262D)
 private const val CALENDAR_CENTER_PAGE = 1200
 private const val CALENDAR_PAGE_COUNT = 2401
 
@@ -223,6 +224,7 @@ internal fun CalendarDay(
     }
     val foreground = when {
         loggedPeriod || estimatedOvulation -> Color.White
+        predictedPeriod || fertileWindow || lutealPhase -> CalendarPastelText
         else -> MaterialTheme.colorScheme.onSurface
     }
 
@@ -297,7 +299,7 @@ private fun LegendItem(
                 Text(
                     symbol,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (lightText) Color.White else MaterialTheme.colorScheme.onSurface
+                    color = if (lightText) Color.White else CalendarPastelText
                 )
             }
         }
