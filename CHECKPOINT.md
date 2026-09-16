@@ -1,35 +1,27 @@
-# Lunara V0.2 checkpoint
+# Lunara V0.3 checkpoint
 
-Prepared 16 September 2026.
+Updated 16 September 2026.
 
-## Changes from V0.1
+## Implemented in this pass
 
-- Visible placeholder brand changed from DKCycle to Lunara while retaining `com.dkcycle.app` and the original `dkcycle` SharedPreferences file for data-format continuity.
-- Added a proper adaptive launcher icon with a mauve background, crescent motif and themed-icon support on Android 13+.
-- Added an in-app Home-screen pin request on first launch and from Settings. The launcher still requires user approval.
-- Added Partner Pass sharing and import. The owner shares only bleeding/spotting dates and flow intensity from the last 24 months; symptoms, mood, pain, temperature and notes are excluded.
-- Added a read-only partner overview and calendar.
-- Partner Pass remains offline and snapshot-based; there is still no Android `INTERNET` permission or backend.
-- Existing DKCycle V0.1 JSON backups remain import-compatible.
-- Added Partner Pass privacy tests.
-- Bumped app version to 0.2.0 / versionCode 2.
-- Added a stable development-only signing key so GitHub-built V0.2+ APKs can update one another during sideloaded testing.
+- Fixed the confusing blank-day logging state: an empty day is no longer treated as a meaningful log.
+- Calendar is now a quick-log surface. Tap a past/today date and use the 🩸 bleeding marker without opening the detailed form.
+- Detailed Log remains available for flow level, symptoms, mood, pain and notes.
+- Added an optional private 💗 marker, disabled by default and controlled in Settings.
+- Added predicted-start indicator (✦) to the calendar.
+- Added Compose back handling so opening Detailed Log or Partner and using Android back returns within Lunara instead of immediately exiting.
+- Replaced the crescent launcher artwork with a four-petal cycle mark and retained adaptive/themed-icon support.
+- Version bumped to 0.3.0 / versionCode 3.
+- Development signing remains pinned to the same Lunara development keystore introduced for V0.2, so V0.3+ test builds should update in place from the stable-signed V0.2 build.
+- Removed the one-off Partner Pass UI and its requirement for existing logs.
 
-## V0.1 migration caveat
+## Partner status
 
-V0.1 used GitHub runner-generated debug signing, so its certificate differs from the stable V0.2 development certificate. Android therefore cannot perform an in-place V0.1 → V0.2 update. Export data from V0.1, uninstall DKCycle, install V0.2, then import the backup. V0.2 onward will retain the same development certificate unless deliberately changed.
+The requested Partner experience is now defined as persistent/live pairing rather than snapshots. A secure backend is still required for two phones to keep an ongoing shared read-only view in sync. Lunara does not fall back to an unencrypted public relay. The intended shared dataset excludes detailed notes, symptoms, mood, pain, temperature and the private heart marker.
 
-## Important Partner Pass limitation
+## Next engineering priority
 
-Partner Pass is not equivalent to Flo's live account pairing. A sent offline snapshot cannot be remotely revoked and does not auto-refresh. Live/revocable partner sync requires an opt-in encrypted network service and should be engineered separately.
-
-## Next priorities
-
-1. Validate the stable-signed V0.2 clean CI build and certificate.
-2. Consider live end-to-end encrypted partner sync as an optional V0.3 feature.
-3. Add notification/reminder scheduling locally.
-4. Add temperature and cervical-mucus logging UI.
-5. Add cycle-history editing and clearer period-start correction.
-6. Add optional biometric/app lock and encrypted-at-rest storage.
-7. Broaden accessibility and UI test coverage.
-8. Create a separate production signing key and signed release APK/AAB when production distribution is ready.
+1. Connect/provision the secure sync backend and finish live pairing + revocation.
+2. Add background sync/retry and visible last-synced state.
+3. Add UI/instrumentation tests for calendar quick logging and back navigation.
+4. Continue accessibility and release-signing work.
