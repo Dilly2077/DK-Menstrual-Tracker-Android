@@ -41,11 +41,11 @@ import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
 
-private val LoggedPeriodColor = Color(0xFFAD4B6B)
-private val PredictedPeriodColor = Color(0xFFF9D5E2)
-private val FertileEstimateColor = Color(0xFFEADCF6)
-private val OvulationEstimateColor = Color(0xFF8B6AA3)
-private val LutealEstimateColor = Color(0xFFFFE5D5)
+internal val LoggedPeriodColor = Color(0xFFAD4B6B)
+internal val PredictedPeriodColor = Color(0xFFF9D5E2)
+internal val FertileWindowColor = Color(0xFFEADCF6)
+internal val OvulationEstimateColor = Color(0xFF8B6AA3)
+internal val LutealPhaseColor = Color(0xFFFFE5D5)
 private const val CALENDAR_CENTER_PAGE = 1200
 private const val CALENDAR_PAGE_COUNT = 2401
 
@@ -67,7 +67,7 @@ internal fun CalendarScreen(
     val month = anchorMonth.plusMonths((pagerState.currentPage - CALENDAR_CENTER_PAGE).toLong())
 
     Column(modifier = Modifier.fillMaxSize()) {
-        PageHeader("Calendar", "Swipe between months • tap a day for a quick log")
+        PageHeader("Calendar", "Swipe months • tap a day to log")
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -75,9 +75,7 @@ internal fun CalendarScreen(
         ) {
             OutlinedButton(
                 onClick = {
-                    if (pagerState.currentPage > 0) {
-                        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
-                    }
+                    if (pagerState.currentPage > 0) scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                 }
             ) { Text("‹") }
             Text(
@@ -87,9 +85,7 @@ internal fun CalendarScreen(
             )
             OutlinedButton(
                 onClick = {
-                    if (pagerState.currentPage < CALENDAR_PAGE_COUNT - 1) {
-                        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                    }
+                    if (pagerState.currentPage < CALENDAR_PAGE_COUNT - 1) scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                 }
             ) { Text("›") }
         }
@@ -104,9 +100,7 @@ internal fun CalendarScreen(
                 logs = logs,
                 analysis = analysis,
                 showIntimacyMarker = showIntimacyMarker,
-                onDateClick = { date ->
-                    if (!date.isAfter(LocalDate.now())) selectedDateRaw = date.toString()
-                }
+                onDateClick = { date -> if (!date.isAfter(LocalDate.now())) selectedDateRaw = date.toString() }
             )
         }
 
@@ -130,7 +124,7 @@ internal fun CalendarScreen(
                             onSave(if (updated.hasMeaningfulData()) logs + (selectedDate to updated) else logs - selectedDate)
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(if (current.flow == FlowIntensity.NONE) "🩸  Mark bleeding" else "🩸  Remove bleeding") }
+                    ) { Text(if (current.flow == FlowIntensity.NONE) "Mark period" else "Remove period") }
                     if (showIntimacyMarker) {
                         OutlinedButton(
                             onClick = {
@@ -138,18 +132,16 @@ internal fun CalendarScreen(
                                 onSave(if (updated.hasMeaningfulData()) logs + (selectedDate to updated) else logs - selectedDate)
                             },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (current.intimacy) "💗  Remove private marker" else "💗  Add private marker") }
+                        ) { Text(if (current.intimacy) "Remove private marker" else "Add private marker") }
                     }
                     Text(
-                        "Use the full Log screen only when you want to add flow level, symptoms, mood, pain or notes.",
+                        "Use Detailed log for flow level, symptoms, mood, pain or notes.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
-            confirmButton = {
-                Button(onClick = { selectedDateRaw = null }) { Text("Done") }
-            },
+            confirmButton = { Button(onClick = { selectedDateRaw = null }) { Text("Done") } },
             dismissButton = {
                 OutlinedButton(onClick = {
                     selectedDateRaw = null
@@ -214,20 +206,19 @@ internal fun CalendarDay(
     val predictedPeriod = analysis.nextPeriodStart != null && analysis.predictedPeriodEnd != null &&
         !date.isBefore(analysis.nextPeriodStart) && !date.isAfter(analysis.predictedPeriodEnd)
     val predictedStart = date == analysis.nextPeriodStart
-    val ovulation = analysis.estimatedOvulation
-    val estimatedOvulation = ovulation != null && date == ovulation
-    val fertileEstimate = analysis.fertileStart != null && ovulation != null &&
-        !date.isBefore(analysis.fertileStart) && date.isBefore(ovulation)
-    val lutealEstimate = ovulation != null && analysis.nextPeriodStart != null &&
-        date.isAfter(ovulation) && date.isBefore(analysis.nextPeriodStart)
+    val estimatedOvulation = analysis.estimatedOvulation != null && date == analysis.estimatedOvulation
+    val fertileWindow = analysis.fertileStart != null && analysis.fertileEnd != null &&
+        !date.isBefore(analysis.fertileStart) && !date.isAfter(analysis.fertileEnd) && !estimatedOvulation
+    val lutealPhase = analysis.lutealStart != null && analysis.lutealEnd != null &&
+        !date.isBefore(analysis.lutealStart) && !date.isAfter(analysis.lutealEnd)
     val loggedPeriod = log?.flow != null && log.flow != FlowIntensity.NONE
 
     val background = when {
         loggedPeriod -> LoggedPeriodColor
         predictedPeriod -> PredictedPeriodColor
         estimatedOvulation -> OvulationEstimateColor
-        lutealEstimate -> LutealEstimateColor
-        fertileEstimate -> FertileEstimateColor
+        fertileWindow -> FertileWindowColor
+        lutealPhase -> LutealPhaseColor
         else -> Color.Transparent
     }
     val foreground = when {
@@ -247,7 +238,7 @@ internal fun CalendarDay(
     ) {
         Text(date.dayOfMonth.toString(), color = foreground)
         Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-            if (loggedPeriod) Text("🩸", style = MaterialTheme.typography.labelSmall)
+            if (loggedPeriod) Text("•", color = Color.White, style = MaterialTheme.typography.labelSmall)
             if (showIntimacyMarker && log?.intimacy == true) Text("💗", style = MaterialTheme.typography.labelSmall)
             if (predictedStart && !loggedPeriod) {
                 Text("✦", color = LoggedPeriodColor, style = MaterialTheme.typography.labelSmall)
@@ -264,16 +255,16 @@ internal fun CalendarLegend(showIntimacyMarker: Boolean = false) {
     ) {
         Text("Calendar key", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            LegendItem(Modifier.weight(1f), LoggedPeriodColor, "🩸", "Logged bleeding")
+            LegendItem(Modifier.weight(1f), LoggedPeriodColor, null, "Logged period", lightText = true)
             LegendItem(Modifier.weight(1f), PredictedPeriodColor, "✦", "Predicted start")
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             LegendItem(Modifier.weight(1f), PredictedPeriodColor, null, "Predicted period")
-            LegendItem(Modifier.weight(1f), FertileEstimateColor, null, "Fertile estimate")
+            LegendItem(Modifier.weight(1f), FertileWindowColor, null, "Fertile window")
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             LegendItem(Modifier.weight(1f), OvulationEstimateColor, null, "Ovulation estimate", lightText = true)
-            LegendItem(Modifier.weight(1f), LutealEstimateColor, null, "Luteal estimate")
+            LegendItem(Modifier.weight(1f), LutealPhaseColor, null, "Luteal phase")
         }
         if (showIntimacyMarker) {
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -282,7 +273,7 @@ internal fun CalendarLegend(showIntimacyMarker: Boolean = false) {
             }
         }
         Text(
-            "Phase and fertility colours are date-based estimates, not confirmation of ovulation or fertility.",
+            "Fertile window, ovulation and luteal phase colours are date-based estimates.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
