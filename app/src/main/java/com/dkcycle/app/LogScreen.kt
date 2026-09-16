@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +44,8 @@ import java.time.LocalDate
 
 private data class MoodOption(val value: String, val emoji: String, val color: Color)
 private data class SymptomOption(val value: String, val emoji: String, val color: Color)
+
+private val PastelChipText = Color(0xFF38262D)
 
 private val moodOptions = listOf(
     MoodOption("Terrible", "😭", Color(0xFFF3D6DE)),
@@ -111,14 +114,18 @@ internal fun LogScreen(
         }
         item {
             LogSection("Period", Color(0x18C65F7C)) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(FlowIntensity.entries) { intensity ->
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FlowIntensity.entries.forEach { intensity ->
                         FilterChip(
                             selected = flowName == intensity.name,
                             onClick = { flowName = intensity.name },
                             label = { Text(flowLabel(intensity)) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         )
                     }
@@ -133,7 +140,8 @@ internal fun LogScreen(
                         onClick = { intimacy = !intimacy },
                         label = { Text("💗 Close moment") },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     )
                 }
@@ -153,8 +161,10 @@ internal fun LogScreen(
                                     label = { Text("${option.emoji} ${option.value}") },
                                     modifier = Modifier.weight(1f),
                                     colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = option.color.copy(alpha = 0.55f),
-                                        selectedContainerColor = option.color
+                                        containerColor = option.color.copy(alpha = 0.86f),
+                                        labelColor = PastelChipText,
+                                        selectedContainerColor = option.color,
+                                        selectedLabelColor = PastelChipText
                                     )
                                 )
                             }
@@ -178,8 +188,10 @@ internal fun LogScreen(
                                 }
                             },
                             colors = FilterChipDefaults.filterChipColors(
-                                containerColor = option.color.copy(alpha = 0.55f),
-                                selectedContainerColor = option.color
+                                containerColor = option.color.copy(alpha = 0.86f),
+                                labelColor = PastelChipText,
+                                selectedContainerColor = option.color,
+                                selectedLabelColor = PastelChipText
                             )
                         )
                     }
@@ -272,11 +284,19 @@ private fun PainScale(pain: Float, onPainChanged: (Float) -> Unit) {
 
 @Composable
 internal fun LogSection(title: String, tint: Color = MaterialTheme.colorScheme.surfaceVariant, content: @Composable () -> Unit) {
+    val sectionColor = if (tint.alpha < 1f) {
+        Color(
+            red = tint.red * tint.alpha + MaterialTheme.colorScheme.surfaceVariant.red * (1f - tint.alpha),
+            green = tint.green * tint.alpha + MaterialTheme.colorScheme.surfaceVariant.green * (1f - tint.alpha),
+            blue = tint.blue * tint.alpha + MaterialTheme.colorScheme.surfaceVariant.blue * (1f - tint.alpha),
+            alpha = 1f
+        )
+    } else tint
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .background(tint, RoundedCornerShape(28.dp))
+            .background(sectionColor, RoundedCornerShape(28.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
