@@ -125,6 +125,7 @@ fun LunaraApp() {
     val colors = if (darkTheme) LunaraDarkColors else LunaraLightColors
 
     MaterialTheme(colorScheme = colors) {
+        AverelleSystemBars(darkTheme)
         var logs by remember { mutableStateOf(store.loadLogs()) }
         var screenName by rememberSaveable { mutableStateOf(Screen.TODAY.name) }
         var previousScreenName by rememberSaveable { mutableStateOf(Screen.TODAY.name) }
@@ -387,6 +388,7 @@ internal fun TodayScreen(
                 }
             }
         }
+        item { HealthArticlesSection() }
     }
 }
 

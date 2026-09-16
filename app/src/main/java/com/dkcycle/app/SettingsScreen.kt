@@ -62,6 +62,20 @@ internal fun SettingsScreen(
         }
     }
 
+    val pdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                val analysis = CycleEngine.analyse(logs.values.toList())
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    DoctorSummaryPdf.write(output, logs, analysis)
+                } ?: error("Could not create PDF")
+            }.onSuccess { scope.launch { snackbar.showSnackbar("Appointment summary PDF created") } }
+                .onFailure { scope.launch { snackbar.showSnackbar("PDF export failed") } }
+        }
+    }
+
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             runCatching {
@@ -141,6 +155,13 @@ internal fun SettingsScreen(
                 "Prediction model",
                 "Predictions use period-start history only. Ovulation and fertile timing remain calendar estimates, not measurements."
             )
+        }
+        item {
+            SettingsCard("Appointment summary PDF", "Create a factual cycle and symptom summary to save or give to a healthcare professional. Free-text notes and the private marker are left out.") {
+                Button(onClick = { pdfLauncher.launch("Averelle-period-summary-${LocalDate.now()}.pdf") }) {
+                    Text("Create PDF")
+                }
+            }
         }
         item {
             SettingsCard("Home shortcut", "Pin the Averelle app shortcut.") {

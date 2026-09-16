@@ -1,21 +1,21 @@
-# Averelle v0.8 checkpoint
+# Averelle v0.10 checkpoint
 
-Updated 16 September 2026.
+Updated 17 September 2026.
 
 ## Implemented in this pass
 
-- Renamed the user-facing app from Lunara to Averelle across the launcher label, Home screen, widgets, Settings, prompts, backup filename and Learn copy.
-- Kept applicationId `com.dkcycle.app` and the existing development signing identity unchanged so v0.8 remains an in-place update for existing stable-signed builds.
-- Bumped the Android build to versionName 0.8.0 / versionCode 8.
-- Replaced the Learn section's raster WebP phase illustrations with resolution-independent Jetpack Compose Canvas artwork.
-- Removed the Learn screen's runtime dependency on the old Follicular WebP asset, addressing the Android crash seen when opening the Follicular tab.
-- Added distinct scalable illustrations for overview, menstrual, follicular, ovulation and luteal topics.
-- Kept the existing cycle prediction engine, themes, widgets, logging, Insights and privacy model unchanged.
+- Fixed Android system status-bar and navigation-bar icon contrast so the time, battery, Wi-Fi and system controls remain visible when Averelle uses a theme that differs from the phone theme.
+- Added a fully local appointment-summary PDF export. The PDF summarises tracked cycle dates, bleeding duration, cycle timing, prediction range, symptoms, high-pain days and spotting for sharing with a healthcare professional.
+- Free-text notes and the optional private intimacy marker are deliberately excluded from the PDF.
+- Added an offline Health library to the lower part of Today, with concise NHS-based information on usual period patterns, heavy periods, period pain and condoms/STI protection.
+- Health content is bundled in the app, carries a visible review date and does not require INTERNET permission, analytics or a live content feed.
+- Bumped the Android build to versionName 0.10.0 / versionCode 10.
+- Kept applicationId `com.dkcycle.app` and the existing development signing identity unchanged for in-place updates.
 
 ## Validation target
 
-GitHub Actions must pass unit tests, Android compilation and APK signing-certificate verification before the v0.8 APK is distributed.
+GitHub Actions must pass unit tests, Android compilation and APK signing-certificate verification before the v0.10 APK is distributed.
 
-## Compatibility
+## Medical-content boundary
 
-The package identifier and signing certificate are intentionally unchanged. Existing v0.2+ stable-signed test installations should be able to update directly to v0.8 without uninstalling or losing local app data.
+The health library is educational. The PDF is a factual summary of user-entered tracking data and clearly states that it is not a diagnosis or clinical record. Predictions remain estimates and are not intended for contraception or diagnosis.
