@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="cycle_widget_description">Cycle day, current phase and next-period estimate.</string>
-    <string name="calendar_widget_description">A local Lunara month calendar with period and phase estimates.</string>
+    <string name="calendar_widget_description">A local Averelle month calendar with period and phase estimates.</string>
 </resources>

@@ -231,7 +231,7 @@ fun LunaraApp() {
                     store.markHomeShortcutPromptShown()
                     showHomePrompt = false
                 },
-                title = { Text("Add Lunara to your Home screen?") },
+                title = { Text("Add Averelle to your Home screen?") },
                 text = { Text("Pin a shortcut now. Widgets can also be added later from Settings.") },
                 confirmButton = {
                     Button(onClick = {
@@ -261,8 +261,8 @@ internal fun requestLunaraHomeShortcut(context: Context): Boolean {
         addCategory(Intent.CATEGORY_LAUNCHER)
     }
     val shortcut = ShortcutInfo.Builder(context, "lunara-home")
-        .setShortLabel("Lunara")
-        .setLongLabel("Open Lunara")
+        .setShortLabel("Averelle")
+        .setLongLabel("Open Averelle")
         .setIcon(AndroidIcon.createWithResource(context, R.mipmap.ic_launcher))
         .setIntent(launchIntent)
         .build()
@@ -292,7 +292,7 @@ internal fun TodayScreen(
 ) {
     val todayLog = logs[LocalDate.now()]?.takeIf { it.hasMeaningfulData() }
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-        item { PageHeader("Lunara") }
+        item { PageHeader("Averelle") }
         item {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Card(

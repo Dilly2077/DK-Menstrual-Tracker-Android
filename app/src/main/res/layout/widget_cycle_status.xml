@@ -11,7 +11,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Lunara"
+        android:text="Averelle"
         android:textColor="#9B4965"
         android:textStyle="bold"
         android:textSize="13sp" />

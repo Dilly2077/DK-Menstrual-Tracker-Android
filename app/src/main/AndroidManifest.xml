@@ -21,7 +21,7 @@
         <receiver
             android:name=".CycleStatusWidgetProvider"
             android:exported="false"
-            android:label="Lunara cycle">
+            android:label="Averelle cycle">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -33,7 +33,7 @@
         <receiver
             android:name=".CalendarWidgetProvider"
             android:exported="false"
-            android:label="Lunara calendar">
+            android:label="Averelle calendar">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

@@ -99,17 +99,17 @@ internal fun SettingsScreen(
         item {
             SettingsCard(
                 "Home widgets",
-                "Add a live cycle summary or a colour-coded month calendar. Both read only from Lunara's local data."
+                "Add a live cycle summary or a colour-coded month calendar. Both read only from Averelle's local data."
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         if (!requestLunaraWidget(context, LunaraWidgetKind.STATUS)) {
-                            scope.launch { snackbar.showSnackbar("Open your launcher's widget picker to add Lunara") }
+                            scope.launch { snackbar.showSnackbar("Open your launcher's widget picker to add Averelle") }
                         }
                     }) { Text("Add cycle widget") }
                     OutlinedButton(onClick = {
                         if (!requestLunaraWidget(context, LunaraWidgetKind.CALENDAR)) {
-                            scope.launch { snackbar.showSnackbar("Open your launcher's widget picker to add Lunara") }
+                            scope.launch { snackbar.showSnackbar("Open your launcher's widget picker to add Averelle") }
                         }
                     }) { Text("Add calendar widget") }
                 }
@@ -143,7 +143,7 @@ internal fun SettingsScreen(
             )
         }
         item {
-            SettingsCard("Home shortcut", "Pin the Lunara app shortcut.") {
+            SettingsCard("Home shortcut", "Pin the Averelle app shortcut.") {
                 Button(onClick = {
                     if (!requestLunaraHomeShortcut(context)) {
                         scope.launch { snackbar.showSnackbar("Your launcher does not support app-requested pinning") }
@@ -152,9 +152,9 @@ internal fun SettingsScreen(
             }
         }
         item {
-            SettingsCard("Export & restore", "Create a JSON backup or restore an existing Lunara/DKCycle backup.") {
+            SettingsCard("Export & restore", "Create a JSON backup or restore an existing Averelle/DKCycle backup.") {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = { exportLauncher.launch("Lunara-backup-${LocalDate.now()}.json") }) { Text("Export") }
+                    Button(onClick = { exportLauncher.launch("Averelle-backup-${LocalDate.now()}.json") }) { Text("Export") }
                     OutlinedButton(onClick = { importLauncher.launch("application/json") }) { Text("Import") }
                 }
             }
@@ -178,7 +178,7 @@ internal fun SettingsScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete all Lunara data?") },
+            title = { Text("Delete all Averelle data?") },
             text = { Text("This cannot be undone unless you have an exported backup.") },
             confirmButton = {
                 Button(onClick = {
