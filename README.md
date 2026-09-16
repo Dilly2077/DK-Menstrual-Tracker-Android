@@ -1,6 +1,6 @@
 # Lunara Android
 
-Lunara is the current placeholder brand for this privacy-first Android menstrual-cycle tracker. V0.2 keeps the existing `com.dkcycle.app` application ID so V0.1 installations can be upgraded without losing locally stored cycle data.
+Lunara is the current placeholder brand for this privacy-first Android menstrual-cycle tracker. V0.2 keeps the existing `com.dkcycle.app` application ID and original `dkcycle` local preference file for data-format continuity.
 
 ## V0.2 features
 
@@ -24,6 +24,12 @@ Lunara is the current placeholder brand for this privacy-first Android menstrual
 Partner Pass deliberately avoids a backend. The code is created locally and only leaves Lunara when the user chooses an Android share destination. It includes up to 24 months of bleeding/spotting dates and flow intensity, but excludes symptoms, mood, pain, temperature and notes. Because it is a static offline snapshot, Lunara cannot remotely revoke a pass after it has been sent; the recipient can clear it locally, and refreshed data requires a newly shared pass.
 
 A future live partner-sync version would require an opt-in encrypted relay/account architecture and should be treated as a separate privacy/security feature rather than silently adding network access.
+
+## Development signing
+
+V0.2 and future sideloaded development builds use the stable **development-only** key in `development-signing/`. This prevents GitHub Actions from generating a different debug signing certificate on every hosted runner, so V0.2 onward can be installed as normal updates over one another.
+
+The original V0.1 APK was already signed with a one-off runner debug certificate, so it cannot be updated in place by V0.2. Before moving from V0.1 to V0.2: export your V0.1 JSON backup, uninstall DKCycle, install Lunara V0.2, then import the backup. This development key must never be used for a production/store release.
 
 ## Build on GitHub
 

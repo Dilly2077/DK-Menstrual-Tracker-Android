@@ -17,7 +17,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("development") {
+            storeFile = rootProject.file("development-signing/lunara-development.jks")
+            storePassword = "lunara-development"
+            keyAlias = "lunara-development"
+            keyPassword = "lunara-development"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("development")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
