@@ -7,6 +7,7 @@ import android.content.pm.ShortcutManager
 import android.graphics.drawable.Icon as AndroidIcon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -79,15 +80,15 @@ internal enum class Screen(val label: String, val icon: ImageVector) {
 @Composable
 fun LunaraApp() {
     val colors = lightColorScheme(
-        primary = Color(0xFF8E4F6B),
+        primary = Color(0xFF9B4965),
         onPrimary = Color.White,
-        primaryContainer = Color(0xFFF7D8E5),
-        onPrimaryContainer = Color(0xFF3A1022),
-        secondary = Color(0xFF725B79),
-        secondaryContainer = Color(0xFFF2DDF4),
-        background = Color(0xFFFFF9FB),
-        surface = Color(0xFFFFF9FB),
-        surfaceVariant = Color(0xFFF6EEF1),
+        primaryContainer = Color(0xFFFFD9E4),
+        onPrimaryContainer = Color(0xFF3D0D20),
+        secondary = Color(0xFF6F5A73),
+        secondaryContainer = Color(0xFFF5DDF4),
+        background = Color(0xFFFFFAFB),
+        surface = Color(0xFFFFFAFB),
+        surfaceVariant = Color(0xFFF8EEF2),
         outline = Color(0xFF8A7A80)
     )
 
@@ -96,6 +97,9 @@ fun LunaraApp() {
         val store = remember { LocalStore(context.applicationContext) }
         var logs by remember { mutableStateOf(store.loadLogs()) }
         var screenName by rememberSaveable { mutableStateOf(Screen.TODAY.name) }
+        var previousScreenName by rememberSaveable { mutableStateOf(Screen.TODAY.name) }
+        var logDateRaw by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+        var intimacyMarkerEnabled by remember { mutableStateOf(store.intimacyMarkerEnabled()) }
         val screen = Screen.valueOf(screenName)
         val analysis = remember(logs) { CycleEngine.analyse(logs.values.toList()) }
         val snackbar = remember { SnackbarHostState() }
@@ -106,8 +110,26 @@ fun LunaraApp() {
         }
 
         fun save(updated: Map<LocalDate, DailyLog>) {
-            logs = updated
-            store.saveLogs(updated)
+            logs = updated.filterValues { it.hasMeaningfulData() }
+            store.saveLogs(logs)
+        }
+
+        fun navigate(destination: Screen) {
+            if (destination != screen) {
+                previousScreenName = screenName
+                screenName = destination.name
+            }
+        }
+
+        fun openLog(date: LocalDate) {
+            logDateRaw = date.toString()
+            navigate(Screen.LOG)
+        }
+
+        BackHandler(enabled = screen != Screen.TODAY) {
+            val destination = runCatching { Screen.valueOf(previousScreenName) }.getOrDefault(Screen.TODAY)
+            screenName = destination.name
+            previousScreenName = Screen.TODAY.name
         }
 
         Scaffold(
@@ -117,7 +139,7 @@ fun LunaraApp() {
                     primaryScreens.forEach { destination ->
                         NavigationBarItem(
                             selected = screen == destination,
-                            onClick = { screenName = destination.name },
+                            onClick = { navigate(destination) },
                             icon = { Icon(destination.icon, contentDescription = destination.label) },
                             label = { Text(destination.label) }
                         )
@@ -130,15 +152,40 @@ fun LunaraApp() {
                     Screen.TODAY -> TodayScreen(
                         analysis = analysis,
                         logs = logs,
-                        onLog = { screenName = Screen.LOG.name },
-                        onPartner = { screenName = Screen.PARTNER.name }
+                        onLog = { openLog(LocalDate.now()) },
+                        onPartner = { navigate(Screen.PARTNER) }
                     )
-                    Screen.CALENDAR -> CalendarScreen(logs, analysis)
-                    Screen.LOG -> LogScreen(logs, ::save, snackbar)
+                    Screen.CALENDAR -> CalendarScreen(
+                        logs = logs,
+                        analysis = analysis,
+                        showIntimacyMarker = intimacyMarkerEnabled,
+                        onSave = ::save,
+                        onMoreDetails = ::openLog
+                    )
+                    Screen.LOG -> LogScreen(
+                        logs = logs,
+                        save = ::save,
+                        snackbar = snackbar,
+                        initialDate = LocalDate.parse(logDateRaw),
+                        showIntimacyMarker = intimacyMarkerEnabled
+                    )
                     Screen.INSIGHTS -> InsightsScreen(logs, analysis)
                     Screen.LEARN -> LearnScreen()
-                    Screen.SETTINGS -> SettingsScreen(logs, ::save, store, snackbar)
-                    Screen.PARTNER -> PartnerScreen(logs, store, snackbar) { screenName = Screen.TODAY.name }
+                    Screen.SETTINGS -> SettingsScreen(
+                        logs = logs,
+                        save = ::save,
+                        store = store,
+                        snackbar = snackbar,
+                        intimacyMarkerEnabled = intimacyMarkerEnabled,
+                        onIntimacyMarkerChanged = {
+                            intimacyMarkerEnabled = it
+                            store.setIntimacyMarkerEnabled(it)
+                        }
+                    )
+                    Screen.PARTNER -> PartnerScreen(logs) {
+                        screenName = previousScreenName
+                        previousScreenName = Screen.TODAY.name
+                    }
                 }
             }
         }
@@ -150,15 +197,13 @@ fun LunaraApp() {
                     showHomePrompt = false
                 },
                 title = { Text("Add Lunara to your Home screen?") },
-                text = {
-                    Text("Android has installed Lunara in your app drawer. Lunara can ask your launcher to add a Home-screen shortcut so it is easier to find.")
-                },
+                text = { Text("Lunara can ask Android to pin a Home-screen shortcut so it is easier to find.") },
                 confirmButton = {
                     Button(onClick = {
                         store.markHomeShortcutPromptShown()
                         showHomePrompt = false
                         if (!requestLunaraHomeShortcut(context)) {
-                            scope.launch { snackbar.showSnackbar("Your current launcher does not support app-requested pinning") }
+                            scope.launch { snackbar.showSnackbar("Your launcher does not support app-requested pinning") }
                         }
                     }) { Text("Add to Home") }
                 },
@@ -210,11 +255,9 @@ internal fun TodayScreen(
     onLog: () -> Unit,
     onPartner: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 24.dp)
-    ) {
-        item { PageHeader("Lunara", "Private, local cycle tracking") }
+    val todayLog = logs[LocalDate.now()]?.takeIf { it.hasMeaningfulData() }
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item { PageHeader("Lunara", "Simple cycle tracking, detail when you want it") }
         item {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Card(
@@ -224,13 +267,13 @@ internal fun TodayScreen(
                 ) {
                     Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            analysis.cycleDay?.let { "Cycle day $it" } ?: "Start by logging your period",
+                            analysis.cycleDay?.let { "Cycle day $it" } ?: "Start by marking a bleeding day",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(analysis.phase, style = MaterialTheme.typography.headlineSmall)
                         Text(analysis.phaseExplanation.replace("DKCycle", "Lunara"))
-                        Button(onClick = onLog) { Text("Log today") }
+                        Button(onClick = onLog) { Text("Detailed log") }
                     }
                 }
 
@@ -239,31 +282,22 @@ internal fun TodayScreen(
                     MetricCard(
                         modifier = Modifier.weight(1f),
                         title = "Next period",
-                        value = analysis.nextPeriodStart?.format(shortDate()) ?: "—",
-                        note = "${analysis.confidence} confidence"
+                        value = analysis.nextPeriodStart?.format(shortDate()) ?: "Learning",
+                        note = if (analysis.nextPeriodStart == null) "Add a bleeding day" else "${analysis.confidence} confidence"
                     )
                     MetricCard(
                         modifier = Modifier.weight(1f),
                         title = "Typical cycle",
                         value = "${analysis.averageCycleLength} days",
-                        note = if (analysis.periodStarts.size < 2) "Using default until more data" else "Based on recent cycles"
+                        note = if (analysis.periodStarts.size < 2) "Uses a default while learning" else "Based on recent cycles"
                     )
                 }
 
                 Spacer(Modifier.height(12.dp))
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
                     Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Estimated fertile window", fontWeight = FontWeight.Bold)
-                        Text(
-                            if (analysis.fertileStart != null && analysis.fertileEnd != null)
-                                "${analysis.fertileStart.format(shortDate())} – ${analysis.fertileEnd.format(shortDate())}"
-                            else "Add period data to estimate a window"
-                        )
-                        Text(
-                            "This is a calendar estimate, not a contraceptive method and not confirmation of ovulation.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text("Calendar quick log", fontWeight = FontWeight.Bold)
+                        Text("Tap a date in Calendar to mark 🩸 bleeding in one tap. Use Detailed log only when you want more information.")
                     }
                 }
 
@@ -271,14 +305,23 @@ internal fun TodayScreen(
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
                     Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Partner", fontWeight = FontWeight.Bold)
-                        Text("Share a read-only cycle snapshot with someone you trust, or import a Partner Pass they sent you.")
+                        Text("Partner sharing is moving to an ongoing paired view instead of one-off snapshots.")
                         OutlinedButton(onClick = onPartner) { Text("Open Partner") }
                     }
                 }
 
-                if (logs[LocalDate.now()] != null) {
+                if (todayLog != null) {
                     Spacer(Modifier.height(12.dp))
-                    Text("Today has been logged.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        buildString {
+                            append("Today: ")
+                            if (todayLog.flow != FlowIntensity.NONE) append("🩸 ")
+                            if (todayLog.intimacy) append("💗 ")
+                            if (todayLog.symptoms.isNotEmpty() || todayLog.mood.isNotBlank() || todayLog.pain > 0 || todayLog.notes.isNotBlank()) append("details saved")
+                        }.trim(),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }

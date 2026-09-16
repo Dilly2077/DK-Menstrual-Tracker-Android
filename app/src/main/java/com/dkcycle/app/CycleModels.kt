@@ -11,8 +11,18 @@ data class DailyLog(
     val mood: String = "",
     val pain: Int = 0,
     val temperatureC: Double? = null,
+    val intimacy: Boolean = false,
     val notes: String = ""
 )
+
+fun DailyLog.hasMeaningfulData(): Boolean =
+    flow != FlowIntensity.NONE ||
+        symptoms.isNotEmpty() ||
+        mood.isNotBlank() ||
+        pain > 0 ||
+        temperatureC != null ||
+        intimacy ||
+        notes.isNotBlank()
 
 data class CycleAnalysis(
     val periodStarts: List<LocalDate>,

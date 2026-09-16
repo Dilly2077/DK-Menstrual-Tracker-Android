@@ -18,6 +18,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +40,9 @@ internal fun SettingsScreen(
     logs: Map<LocalDate, DailyLog>,
     save: (Map<LocalDate, DailyLog>) -> Unit,
     store: LocalStore,
-    snackbar: SnackbarHostState
+    snackbar: SnackbarHostState,
+    intimacyMarkerEnabled: Boolean,
+    onIntimacyMarkerChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -49,9 +53,7 @@ internal fun SettingsScreen(
     ) { uri ->
         if (uri != null) {
             runCatching {
-                context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { writer ->
-                    writer.write(store.exportJson(logs))
-                }
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(store.exportJson(logs)) }
             }.onSuccess { scope.launch { snackbar.showSnackbar("Export complete") } }
                 .onFailure { scope.launch { snackbar.showSnackbar("Export failed") } }
         }
@@ -71,21 +73,36 @@ internal fun SettingsScreen(
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 30.dp)) {
-        item { PageHeader("Settings", "Data ownership and controls") }
+        item { PageHeader("Settings", "Keep the simple view simple") }
+        item {
+            SettingsCard(
+                "Optional private marker",
+                "Show a discreet heart option in calendar quick logging for close moments you may want to remember. It is off by default and is never intended for the partner view."
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Show 💗 marker")
+                    Switch(checked = intimacyMarkerEnabled, onCheckedChange = onIntimacyMarkerChanged)
+                }
+            }
+        }
         item {
             SettingsCard(
                 "Privacy by design",
-                "Lunara has no INTERNET permission, no account, no advertising SDK and no analytics SDK in this build. Your cycle logs are stored locally on the device. Partner Pass sharing only leaves the app when you explicitly choose a share destination."
+                "This V0.3 test build still has no INTERNET permission, no ads and no analytics. Live Partner will only be enabled after the encrypted sync service is connected; the old snapshot Partner Pass has been removed."
             )
         }
         item {
             SettingsCard(
                 "Home screen",
-                "Ask your Android launcher to pin a Lunara shortcut to the Home screen. Android always leaves the final placement under your control."
+                "Ask Android to pin Lunara to your Home screen. Android controls the final placement."
             ) {
                 Button(onClick = {
                     if (!requestLunaraHomeShortcut(context)) {
-                        scope.launch { snackbar.showSnackbar("Your current launcher does not support app-requested pinning") }
+                        scope.launch { snackbar.showSnackbar("Your launcher does not support app-requested pinning") }
                     }
                 }) { Text("Add to Home screen") }
             }
@@ -93,7 +110,7 @@ internal fun SettingsScreen(
         item {
             SettingsCard(
                 "Export & restore",
-                "Create a portable JSON backup or restore a Lunara backup. Existing DKCycle V0.1 exports remain compatible."
+                "Create a portable JSON backup or restore a Lunara/DKCycle backup."
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(onClick = { exportLauncher.launch("Lunara-backup-${LocalDate.now()}.json") }) { Text("Export") }
@@ -108,7 +125,7 @@ internal fun SettingsScreen(
             )
         }
         item {
-            SettingsCard("Data", "Delete all locally stored cycle logs and any imported Partner Pass from this installation.") {
+            SettingsCard("Data", "Delete all locally stored cycle logs from this installation.") {
                 Button(
                     onClick = { confirmDelete = true },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -125,7 +142,7 @@ internal fun SettingsScreen(
             confirmButton = {
                 Button(onClick = {
                     save(emptyMap())
-                    store.clearPartnerPass()
+                    store.clearLegacyPartnerPass()
                     confirmDelete = false
                     scope.launch { snackbar.showSnackbar("All local health data deleted") }
                 }) { Text("Delete") }

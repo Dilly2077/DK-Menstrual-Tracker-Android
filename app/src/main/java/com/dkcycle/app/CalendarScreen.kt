@@ -1,95 +1,58 @@
 package com.dkcycle.app
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 @Composable
-internal fun CalendarScreen(logs: Map<LocalDate, DailyLog>, analysis: CycleAnalysis) {
+internal fun CalendarScreen(
+    logs: Map<LocalDate, DailyLog>,
+    analysis: CycleAnalysis,
+    showIntimacyMarker: Boolean,
+    onSave: (Map<LocalDate, DailyLog>) -> Unit,
+    onMoreDetails: (LocalDate) -> Unit
+) {
     var monthRaw by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
+    var selectedDateRaw by rememberSaveable { mutableStateOf<String?>(null) }
     val month = YearMonth.parse(monthRaw)
     val first = month.atDay(1)
     val offset = first.dayOfWeek.value - 1
     val cells: List<LocalDate?> = List(offset) { null } + (1..month.lengthOfMonth()).map { month.atDay(it) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        PageHeader("Calendar", "Logged and estimated cycle days")
+        PageHeader("Calendar", "Tap any day for a quick log")
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -113,23 +76,84 @@ internal fun CalendarScreen(logs: Map<LocalDate, DailyLog>, analysis: CycleAnaly
             modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp),
             userScrollEnabled = false
         ) {
-            items(cells) { date -> CalendarDay(date, logs[date], analysis) }
+            items(cells) { date ->
+                CalendarDay(
+                    date = date,
+                    log = date?.let { logs[it] },
+                    analysis = analysis,
+                    showIntimacyMarker = showIntimacyMarker,
+                    onClick = { if (date != null && !date.isAfter(LocalDate.now())) selectedDateRaw = date.toString() }
+                )
+            }
         }
-        CalendarLegend()
+        CalendarLegend(showIntimacyMarker)
+    }
+
+    val selectedDate = selectedDateRaw?.let(LocalDate::parse)
+    if (selectedDate != null) {
+        val current = logs[selectedDate] ?: DailyLog(selectedDate)
+        AlertDialog(
+            onDismissRequest = { selectedDateRaw = null },
+            title = { Text(selectedDate.format(longDate())) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Quick log", fontWeight = FontWeight.Bold)
+                    Button(
+                        onClick = {
+                            val updated = current.copy(
+                                flow = if (current.flow == FlowIntensity.NONE) FlowIntensity.MEDIUM else FlowIntensity.NONE
+                            )
+                            onSave(if (updated.hasMeaningfulData()) logs + (selectedDate to updated) else logs - selectedDate)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (current.flow == FlowIntensity.NONE) "🩸  Mark bleeding" else "🩸  Remove bleeding") }
+                    if (showIntimacyMarker) {
+                        OutlinedButton(
+                            onClick = {
+                                val updated = current.copy(intimacy = !current.intimacy)
+                                onSave(if (updated.hasMeaningfulData()) logs + (selectedDate to updated) else logs - selectedDate)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (current.intimacy) "💗  Remove private marker" else "💗  Add private marker") }
+                    }
+                    Text(
+                        "Use the full Log screen only when you want to add flow level, symptoms, mood, pain or notes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = { selectedDateRaw = null }) { Text("Done") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = {
+                    selectedDateRaw = null
+                    onMoreDetails(selectedDate)
+                }) { Text("More details") }
+            }
+        )
     }
 }
 
 @Composable
-internal fun CalendarDay(date: LocalDate?, log: DailyLog?, analysis: CycleAnalysis) {
+internal fun CalendarDay(
+    date: LocalDate?,
+    log: DailyLog?,
+    analysis: CycleAnalysis,
+    showIntimacyMarker: Boolean = false,
+    onClick: () -> Unit = {}
+) {
     if (date == null) {
-        Box(Modifier.size(48.dp))
+        Box(Modifier.size(52.dp))
         return
     }
     val predictedPeriod = analysis.nextPeriodStart != null && analysis.predictedPeriodEnd != null &&
         !date.isBefore(analysis.nextPeriodStart) && !date.isAfter(analysis.predictedPeriodEnd)
     val fertile = analysis.fertileStart != null && analysis.fertileEnd != null &&
         !date.isBefore(analysis.fertileStart) && !date.isAfter(analysis.fertileEnd)
-    val loggedPeriod = log?.flow != null && log.flow != FlowIntensity.NONE && log.flow != FlowIntensity.SPOTTING
+    val loggedPeriod = log?.flow != null && log.flow != FlowIntensity.NONE
+    val predictedStart = date == analysis.nextPeriodStart
     val background = when {
         loggedPeriod -> MaterialTheme.colorScheme.primary
         predictedPeriod -> MaterialTheme.colorScheme.primaryContainer
@@ -137,30 +161,31 @@ internal fun CalendarDay(date: LocalDate?, log: DailyLog?, analysis: CycleAnalys
         else -> Color.Transparent
     }
     val foreground = if (loggedPeriod) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-    Box(
-        modifier = Modifier.padding(3.dp).size(44.dp).background(background, CircleShape),
-        contentAlignment = Alignment.Center
+
+    Column(
+        modifier = Modifier.padding(2.dp).size(52.dp).background(background, CircleShape).clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(date.dayOfMonth.toString(), color = foreground)
+        Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            if (loggedPeriod) Text("🩸", style = MaterialTheme.typography.labelSmall)
+            if (showIntimacyMarker && log?.intimacy == true) Text("💗", style = MaterialTheme.typography.labelSmall)
+            if (predictedStart && !loggedPeriod) Text("✦", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
 
 @Composable
-internal fun CalendarLegend() {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        LegendDot(MaterialTheme.colorScheme.primary, "Logged period")
-        LegendDot(MaterialTheme.colorScheme.primaryContainer, "Predicted")
-        LegendDot(MaterialTheme.colorScheme.secondaryContainer, "Fertile estimate")
-    }
-}
-
-@Composable
-internal fun LegendDot(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        Box(Modifier.size(10.dp).background(color, CircleShape))
-        Text(label, style = MaterialTheme.typography.labelSmall)
+internal fun CalendarLegend(showIntimacyMarker: Boolean = false) {
+    Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Text("🩸 logged", style = MaterialTheme.typography.labelSmall)
+            Text("✦ predicted start", style = MaterialTheme.typography.labelSmall)
+            Text("Pale = estimate", style = MaterialTheme.typography.labelSmall)
+        }
+        if (showIntimacyMarker) {
+            Text("💗 private marker", style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
     }
 }

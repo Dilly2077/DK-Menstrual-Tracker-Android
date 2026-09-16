@@ -6,7 +6,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 
 class LocalStore(context: Context) {
-    // Keep the original preference file name so V0.1 data survives the visible rename to Lunara.
+    // Keep the original preference file name so older DKCycle/Lunara data survives upgrades.
     private val prefs = context.getSharedPreferences("dkcycle", Context.MODE_PRIVATE)
 
     fun loadLogs(): Map<LocalDate, DailyLog> {
@@ -20,7 +20,7 @@ class LocalStore(context: Context) {
 
     fun exportJson(logs: Map<LocalDate, DailyLog>): String = JSONObject().apply {
         put("format", "Lunara")
-        put("version", 2)
+        put("version", 3)
         put("logs", JSONArray(encodeLogs(logs)))
     }.toString(2)
 
@@ -28,25 +28,19 @@ class LocalStore(context: Context) {
         val root = JSONObject(raw)
         val format = root.optString("format")
         require(format == "Lunara" || format == "DKCycle") { "Not a Lunara or DKCycle export" }
-        val logsArray = root.getJSONArray("logs")
-        return decodeLogs(logsArray.toString())
+        return decodeLogs(root.getJSONArray("logs").toString())
     }
 
     fun hasShownHomeShortcutPrompt(): Boolean = prefs.getBoolean(KEY_HOME_PROMPT, false)
+    fun markHomeShortcutPromptShown() { prefs.edit().putBoolean(KEY_HOME_PROMPT, true).apply() }
 
-    fun markHomeShortcutPromptShown() {
-        prefs.edit().putBoolean(KEY_HOME_PROMPT, true).apply()
+    fun intimacyMarkerEnabled(): Boolean = prefs.getBoolean(KEY_INTIMACY_MARKER, false)
+    fun setIntimacyMarkerEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_INTIMACY_MARKER, enabled).apply()
     }
 
-    fun loadPartnerPass(): String? = prefs.getString(KEY_PARTNER_PASS, null)
-
-    fun savePartnerPass(pass: String) {
-        prefs.edit().putString(KEY_PARTNER_PASS, pass).apply()
-    }
-
-    fun clearPartnerPass() {
-        prefs.edit().remove(KEY_PARTNER_PASS).apply()
-    }
+    // Legacy V0.2 Partner Pass is retained only so an old value can be cleared during migration.
+    fun clearLegacyPartnerPass() { prefs.edit().remove(KEY_PARTNER_PASS).apply() }
 
     private fun encodeLogs(logs: Map<LocalDate, DailyLog>): String {
         val array = JSONArray()
@@ -58,6 +52,7 @@ class LocalStore(context: Context) {
                 put("mood", log.mood)
                 put("pain", log.pain)
                 if (log.temperatureC != null) put("temperatureC", log.temperatureC)
+                put("intimacy", log.intimacy)
                 put("notes", log.notes)
             })
         }
@@ -74,15 +69,18 @@ class LocalStore(context: Context) {
             val symptoms = buildSet {
                 for (j in 0 until symptomsArray.length()) add(symptomsArray.getString(j))
             }
-            result[date] = DailyLog(
+            val log = DailyLog(
                 date = date,
-                flow = runCatching { FlowIntensity.valueOf(item.optString("flow", "NONE")) }.getOrDefault(FlowIntensity.NONE),
+                flow = runCatching { FlowIntensity.valueOf(item.optString("flow", "NONE")) }
+                    .getOrDefault(FlowIntensity.NONE),
                 symptoms = symptoms,
                 mood = item.optString("mood", ""),
                 pain = item.optInt("pain", 0).coerceIn(0, 10),
                 temperatureC = if (item.has("temperatureC")) item.optDouble("temperatureC") else null,
+                intimacy = item.optBoolean("intimacy", false),
                 notes = item.optString("notes", "")
             )
+            if (log.hasMeaningfulData()) result[date] = log
         }
         return result
     }
@@ -90,6 +88,7 @@ class LocalStore(context: Context) {
     companion object {
         private const val KEY_LOGS = "logs_json"
         private const val KEY_HOME_PROMPT = "home_shortcut_prompt_shown"
+        private const val KEY_INTIMACY_MARKER = "intimacy_marker_enabled"
         private const val KEY_PARTNER_PASS = "partner_pass"
     }
 }

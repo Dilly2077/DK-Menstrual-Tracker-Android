@@ -37,16 +37,19 @@ import java.time.LocalDate
 internal fun LogScreen(
     logs: Map<LocalDate, DailyLog>,
     save: (Map<LocalDate, DailyLog>) -> Unit,
-    snackbar: SnackbarHostState
+    snackbar: SnackbarHostState,
+    initialDate: LocalDate = LocalDate.now(),
+    showIntimacyMarker: Boolean = false
 ) {
-    var dateRaw by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    var dateRaw by rememberSaveable(initialDate.toString()) { mutableStateOf(initialDate.toString()) }
     val date = LocalDate.parse(dateRaw)
     val existing = logs[date] ?: DailyLog(date)
-    var flowName by remember(dateRaw) { mutableStateOf(existing.flow.name) }
-    var symptoms by remember(dateRaw) { mutableStateOf(existing.symptoms) }
-    var mood by remember(dateRaw) { mutableStateOf(existing.mood) }
-    var pain by remember(dateRaw) { mutableStateOf(existing.pain.toFloat()) }
-    var notes by remember(dateRaw) { mutableStateOf(existing.notes) }
+    var flowName by remember(dateRaw, existing) { mutableStateOf(existing.flow.name) }
+    var symptoms by remember(dateRaw, existing) { mutableStateOf(existing.symptoms) }
+    var mood by remember(dateRaw, existing) { mutableStateOf(existing.mood) }
+    var pain by remember(dateRaw, existing) { mutableStateOf(existing.pain.toFloat()) }
+    var intimacy by remember(dateRaw, existing) { mutableStateOf(existing.intimacy) }
+    var notes by remember(dateRaw, existing) { mutableStateOf(existing.notes) }
     val scope = rememberCoroutineScope()
 
     LazyColumn(
@@ -55,20 +58,14 @@ internal fun LogScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            PageHeader("Log", date.format(longDate()))
+            PageHeader("Detailed log", date.format(longDate()))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 OutlinedButton(onClick = { dateRaw = date.minusDays(1).toString() }) { Text("Previous") }
-                OutlinedButton(
-                    onClick = { dateRaw = LocalDate.now().toString() },
-                    enabled = date != LocalDate.now()
-                ) { Text("Today") }
-                OutlinedButton(
-                    onClick = { dateRaw = date.plusDays(1).toString() },
-                    enabled = date.isBefore(LocalDate.now())
-                ) { Text("Next") }
+                OutlinedButton(onClick = { dateRaw = LocalDate.now().toString() }, enabled = date != LocalDate.now()) { Text("Today") }
+                OutlinedButton(onClick = { dateRaw = date.plusDays(1).toString() }, enabled = date.isBefore(LocalDate.now())) { Text("Next") }
             }
         }
         item {
@@ -84,6 +81,22 @@ internal fun LogScreen(
                 }
             }
         }
+        if (showIntimacyMarker) {
+            item {
+                LogSection("Private marker") {
+                    FilterChip(
+                        selected = intimacy,
+                        onClick = { intimacy = !intimacy },
+                        label = { Text("💗 Close moment") }
+                    )
+                    Text(
+                        "Optional and private. This marker is not included in the partner view.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
         item {
             val allSymptoms = listOf("Cramps", "Headache", "Bloating", "Breast tenderness", "Acne", "Fatigue", "Nausea", "Back pain")
             LogSection("Symptoms") {
@@ -93,9 +106,7 @@ internal fun LogScreen(
                             rowSymptoms.forEach { symptom ->
                                 FilterChip(
                                     selected = symptom in symptoms,
-                                    onClick = {
-                                        symptoms = if (symptom in symptoms) symptoms - symptom else symptoms + symptom
-                                    },
+                                    onClick = { symptoms = if (symptom in symptoms) symptoms - symptom else symptoms + symptom },
                                     label = { Text(symptom) },
                                     modifier = Modifier.weight(1f)
                                 )
@@ -141,10 +152,12 @@ internal fun LogScreen(
                         symptoms = symptoms,
                         mood = mood,
                         pain = pain.toInt(),
+                        intimacy = intimacy,
                         notes = notes.trim()
                     )
-                    save(logs + (date to updatedLog))
-                    scope.launch { snackbar.showSnackbar("Saved ${date.format(shortDate())}") }
+                    val updated = if (updatedLog.hasMeaningfulData()) logs + (date to updatedLog) else logs - date
+                    save(updated)
+                    scope.launch { snackbar.showSnackbar(if (updatedLog.hasMeaningfulData()) "Saved ${date.format(shortDate())}" else "Empty day cleared") }
                 },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(52.dp)
             ) { Text("Save day") }
