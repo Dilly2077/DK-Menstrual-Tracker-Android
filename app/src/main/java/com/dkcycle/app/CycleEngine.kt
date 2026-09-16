@@ -69,7 +69,7 @@ object CycleEngine {
         val explanation = when (phase) {
             "Menstrual phase" -> "Oestrogen and progesterone are relatively low. FSH begins recruiting follicles for the next cycle while the uterine lining is shed."
             "Follicular phase" -> "FSH supports follicle development. Oestrogen usually rises as the dominant follicle matures and the endometrium rebuilds."
-            "Fertile / ovulatory window" -> "Rising oestrogen helps trigger the LH surge that precedes ovulation. This is only a date-based estimate; DKCycle does not measure ovulation or hormone concentrations."
+            "Fertile / ovulatory window" -> "Rising oestrogen helps trigger the LH surge that precedes ovulation. This is only a date-based estimate; Lunara does not measure ovulation or hormone concentrations."
             "Luteal phase" -> "After ovulation, the corpus luteum produces progesterone and some oestrogen. If pregnancy does not occur, both fall before the next period."
             "Cycle may be running longer than predicted" -> "Your logged cycle has passed the predicted start date. Predictions are estimates and naturally become less certain when cycles vary."
             else -> "Log at least one period start to begin cycle estimates; several cycles are needed before personalised predictions become more useful."

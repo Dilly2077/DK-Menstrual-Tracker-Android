@@ -116,8 +116,8 @@ internal fun LearnScreen() {
         }
         item {
             LearnCard(
-                "What DKCycle can and cannot know",
-                "DKCycle can estimate dates from your logs. It cannot measure FSH, LH, oestrogen, progesterone, confirm ovulation, diagnose a condition, or tell whether pregnancy is possible on a particular day."
+                "What Lunara can and cannot know",
+                "Lunara can estimate dates from your logs. It cannot measure FSH, LH, oestrogen, progesterone, confirm ovulation, diagnose a condition, or tell whether pregnancy is possible on a particular day."
             )
         }
     }
