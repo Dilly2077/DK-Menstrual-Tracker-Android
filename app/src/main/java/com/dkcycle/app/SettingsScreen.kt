@@ -78,23 +78,18 @@ internal fun SettingsScreen(
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 30.dp)) {
         item { PageHeader("Settings", "Privacy, appearance and data controls") }
         item {
-            SettingsCard(
-                "Appearance",
-                "Follow your phone automatically or choose a fixed Lunara theme."
-            ) {
+            SettingsCard("Appearance", "Follow your phone or choose a fixed theme.") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppearanceMode.entries.forEach { mode ->
                         FilterChip(
                             selected = appearance == mode,
                             onClick = { onAppearanceChanged(mode) },
                             label = {
-                                Text(
-                                    when (mode) {
-                                        AppearanceMode.SYSTEM -> "System"
-                                        AppearanceMode.LIGHT -> "Light"
-                                        AppearanceMode.DARK -> "Dark"
-                                    }
-                                )
+                                Text(when (mode) {
+                                    AppearanceMode.SYSTEM -> "System"
+                                    AppearanceMode.LIGHT -> "Light"
+                                    AppearanceMode.DARK -> "Dark"
+                                })
                             }
                         )
                     }
@@ -103,8 +98,27 @@ internal fun SettingsScreen(
         }
         item {
             SettingsCard(
+                "Home widgets",
+                "Add a live cycle summary or a colour-coded month calendar. Both read only from Lunara's local data."
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        if (!requestLunaraWidget(context, LunaraWidgetKind.STATUS)) {
+                            scope.launch { snackbar.showSnackbar("Open your launcher's widget picker to add Lunara") }
+                        }
+                    }) { Text("Add cycle widget") }
+                    OutlinedButton(onClick = {
+                        if (!requestLunaraWidget(context, LunaraWidgetKind.CALENDAR)) {
+                            scope.launch { snackbar.showSnackbar("Open your launcher's widget picker to add Lunara") }
+                        }
+                    }) { Text("Add calendar widget") }
+                }
+            }
+        }
+        item {
+            SettingsCard(
                 "Optional private marker",
-                "Show a discreet heart option in calendar quick logging for close moments you may want to remember. It is off by default and is never intended for the partner view."
+                "Show a discreet heart option for close moments. It stays out of the partner view."
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -119,32 +133,26 @@ internal fun SettingsScreen(
         item {
             SettingsCard(
                 "Privacy by design",
-                "Cycle data stays on this device. This build has no INTERNET permission, ads or analytics, and the prediction model does not require temperature, heart rate, LH tests, age, weight or an account."
+                "Cycle data stays on this device. There is no INTERNET permission, advertising or analytics."
             )
         }
         item {
             SettingsCard(
                 "Prediction model",
-                "Lunara predicts from period-start history alone. It models uncertainty, gives recent cycles slightly more influence, down-weights unusual gaps and can treat very long intervals as possible missed tracking rather than ordinary cycles. Ovulation remains a calendar estimate, not a measurement."
+                "Predictions use period-start history only. Ovulation and fertile timing remain calendar estimates, not measurements."
             )
         }
         item {
-            SettingsCard(
-                "Home screen",
-                "Ask Android to pin Lunara to your Home screen. Android controls the final placement."
-            ) {
+            SettingsCard("Home shortcut", "Pin the Lunara app shortcut.") {
                 Button(onClick = {
                     if (!requestLunaraHomeShortcut(context)) {
                         scope.launch { snackbar.showSnackbar("Your launcher does not support app-requested pinning") }
                     }
-                }) { Text("Add to Home screen") }
+                }) { Text("Add shortcut") }
             }
         }
         item {
-            SettingsCard(
-                "Export & restore",
-                "Create a portable JSON backup or restore a Lunara/DKCycle backup."
-            ) {
+            SettingsCard("Export & restore", "Create a JSON backup or restore an existing Lunara/DKCycle backup.") {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(onClick = { exportLauncher.launch("Lunara-backup-${LocalDate.now()}.json") }) { Text("Export") }
                     OutlinedButton(onClick = { importLauncher.launch("application/json") }) { Text("Import") }
@@ -154,7 +162,7 @@ internal fun SettingsScreen(
         item {
             SettingsCard(
                 "Medical limitations",
-                "Predictions are estimates derived from logged dates. They should not be used as contraception, to diagnose disease, or to replace pregnancy testing or clinical advice."
+                "Predictions are estimates. Do not use them as contraception, diagnosis, pregnancy testing or a substitute for clinical advice."
             )
         }
         item {
