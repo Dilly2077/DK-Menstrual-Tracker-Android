@@ -232,7 +232,7 @@ fun LunaraApp() {
                     showHomePrompt = false
                 },
                 title = { Text("Add Lunara to your Home screen?") },
-                text = { Text("Lunara can ask Android to pin a Home-screen shortcut so it is easier to find.") },
+                text = { Text("Pin a shortcut now. Widgets can also be added later from Settings.") },
                 confirmButton = {
                     Button(onClick = {
                         store.markHomeShortcutPromptShown()
@@ -292,7 +292,7 @@ internal fun TodayScreen(
 ) {
     val todayLog = logs[LocalDate.now()]?.takeIf { it.hasMeaningfulData() }
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-        item { PageHeader("Lunara", "Simple cycle tracking, detail when you want it") }
+        item { PageHeader("Lunara") }
         item {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Card(
@@ -300,63 +300,62 @@ internal fun TodayScreen(
                     shape = RoundedCornerShape(28.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(modifier = Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            analysis.cycleDay?.let { "Cycle day $it" } ?: "Start by marking a bleeding day",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            analysis.cycleDay?.let { "Cycle day $it" } ?: "Start by logging a period",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        Text(analysis.phase, style = MaterialTheme.typography.headlineSmall)
-                        Text(analysis.phaseExplanation)
-                        Button(onClick = onLog) { Text("Detailed log") }
+                        Text(analysis.phase, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            homePhaseLine(analysis),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Button(onClick = onLog) { Text(if (todayLog == null) "Log today" else "Edit today") }
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MetricCard(
                         modifier = Modifier.weight(1f),
                         title = "Next period",
                         value = analysis.nextPeriodStart?.format(shortDate()) ?: "Learning",
-                        note = when {
-                            analysis.nextPeriodStart == null -> "Add or continue logging periods"
-                            else -> "${analysis.confidence} confidence"
-                        }
+                        note = analysis.confidence
                     )
                     MetricCard(
                         modifier = Modifier.weight(1f),
                         title = "Typical cycle",
                         value = "${analysis.averageCycleLength} days",
-                        note = if (analysis.usableCycleCount == 0) "Prior while learning" else "Personalised estimate"
+                        note = if (analysis.usableCycleCount == 0) "Still learning" else "Personalised"
                     )
                 }
 
                 if (analysis.predictionWindowStart != null && analysis.predictionWindowEnd != null) {
-                    Spacer(Modifier.height(12.dp))
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
-                        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Prediction range", fontWeight = FontWeight.Bold)
-                            Text(
-                                "Most likely start ${analysis.nextPeriodStart?.format(shortDate())}. Approximate 80% range ${analysis.predictionWindowStart.format(shortDate())}–${analysis.predictionWindowEnd.format(shortDate())}."
-                            )
+                    Text(
+                        "Likely range ${analysis.predictionWindowStart.format(shortDate())}–${analysis.predictionWindowEnd.format(shortDate())}",
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Partner", fontWeight = FontWeight.Bold)
+                            Text("Paired view", style = MaterialTheme.typography.bodySmall)
                         }
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
-                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Calendar quick log", fontWeight = FontWeight.Bold)
-                        Text("Tap a date in Calendar to mark 🩸 bleeding in one tap. Use Detailed log only when you want more information.")
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
-                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Partner", fontWeight = FontWeight.Bold)
-                        Text("Partner sharing is moving to an ongoing paired view instead of one-off snapshots.")
-                        OutlinedButton(onClick = onPartner) { Text("Open Partner") }
+                        OutlinedButton(onClick = onPartner) { Text("Open") }
                     }
                 }
 
@@ -364,13 +363,14 @@ internal fun TodayScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(
                         buildString {
-                            append("Today: ")
-                            if (todayLog.flow != FlowIntensity.NONE) append("🩸 ")
-                            if (todayLog.intimacy) append("💗 ")
-                            if (todayLog.symptoms.isNotEmpty() || todayLog.mood.isNotBlank() || todayLog.pain > 0 || todayLog.notes.isNotBlank()) append("details saved")
-                        }.trim(),
+                            append("Today logged")
+                            if (todayLog.flow != FlowIntensity.NONE) append(" · period")
+                            if (todayLog.intimacy) append(" · private marker")
+                            if (todayLog.mood.isNotBlank()) append(" · ${todayLog.mood.lowercase()}")
+                        },
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
@@ -378,10 +378,20 @@ internal fun TodayScreen(
     }
 }
 
+private fun homePhaseLine(analysis: CycleAnalysis): String = when (analysis.phase) {
+    "Menstrual phase" -> "Your period is currently logged."
+    "Follicular phase" -> "The follicular phase is estimated now."
+    "Estimated fertile window" -> "You are in the estimated fertile window."
+    "Luteal phase" -> "The luteal phase is estimated now."
+    "Cycle timing uncertain" -> "This cycle is outside most of the predicted range."
+    "Period may be later than estimated" -> "The estimate is updating as this cycle continues."
+    else -> "Keep logging period starts to personalise predictions."
+}
+
 @Composable
 internal fun MetricCard(modifier: Modifier = Modifier, title: String, value: String, note: String) {
     Card(modifier = modifier, shape = RoundedCornerShape(20.dp)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(note, style = MaterialTheme.typography.bodySmall)
