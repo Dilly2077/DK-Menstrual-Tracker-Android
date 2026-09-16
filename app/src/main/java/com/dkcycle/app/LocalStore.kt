@@ -6,8 +6,9 @@ import org.json.JSONObject
 import java.time.LocalDate
 
 class LocalStore(context: Context) {
+    private val appContext = context.applicationContext
     // Keep the original preference file name so older DKCycle/Lunara data survives upgrades.
-    private val prefs = context.getSharedPreferences("dkcycle", Context.MODE_PRIVATE)
+    private val prefs = appContext.getSharedPreferences("dkcycle", Context.MODE_PRIVATE)
 
     fun loadLogs(): Map<LocalDate, DailyLog> {
         val raw = prefs.getString(KEY_LOGS, null) ?: return emptyMap()
@@ -16,6 +17,7 @@ class LocalStore(context: Context) {
 
     fun saveLogs(logs: Map<LocalDate, DailyLog>) {
         prefs.edit().putString(KEY_LOGS, encodeLogs(logs)).apply()
+        LunaraWidgetUpdater.updateAll(appContext)
     }
 
     fun exportJson(logs: Map<LocalDate, DailyLog>): String = JSONObject().apply {
@@ -47,7 +49,6 @@ class LocalStore(context: Context) {
         prefs.edit().putString(KEY_APPEARANCE, mode.name).apply()
     }
 
-    // Legacy V0.2 Partner Pass is retained only so an old value can be cleared during migration.
     fun clearLegacyPartnerPass() { prefs.edit().remove(KEY_PARTNER_PASS).apply() }
 
     private fun encodeLogs(logs: Map<LocalDate, DailyLog>): String {
