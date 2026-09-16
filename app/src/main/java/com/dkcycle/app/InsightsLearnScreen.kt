@@ -29,28 +29,45 @@ internal fun InsightsScreen(logs: Map<LocalDate, DailyLog>, analysis: CycleAnaly
         item { PageHeader("Insights", "Your patterns, kept on this device") }
         item {
             Row(modifier = Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MetricCard(Modifier.weight(1f), "Cycle", "${analysis.averageCycleLength} days", "Recent weighted average")
-                MetricCard(Modifier.weight(1f), "Period", "${analysis.averagePeriodLength} days", "Recent average")
+                MetricCard(Modifier.weight(1f), "Cycle", "${analysis.averageCycleLength} days", "Personalised estimate")
+                MetricCard(Modifier.weight(1f), "Period", "${analysis.averagePeriodLength} days", "Recent median")
             }
         }
         item {
             Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MetricCard(Modifier.weight(1f), "Variation", "%.1f days".format(analysis.variabilityDays), "Standard deviation")
-                MetricCard(Modifier.weight(1f), "Prediction", analysis.confidence, "Improves with more cycles")
+                MetricCard(Modifier.weight(1f), "Uncertainty", "%.1f days".format(analysis.variabilityDays), "Model spread")
+                MetricCard(Modifier.weight(1f), "Prediction", analysis.confidence, "Narrows with history")
+            }
+        }
+        if (analysis.predictionWindowStart != null && analysis.predictionWindowEnd != null) {
+            item {
+                Spacer(Modifier.height(12.dp))
+                LearnCard(
+                    "Current prediction range",
+                    "Most likely next period: ${analysis.nextPeriodStart?.format(shortDate())}. Approximate 80% model window: ${analysis.predictionWindowStart.format(shortDate())} – ${analysis.predictionWindowEnd.format(shortDate())}. This range updates as the current cycle continues."
+                )
+            }
+        }
+        if (analysis.inferredMissedCycles > 0) {
+            item {
+                LearnCard(
+                    "Possible missed tracking",
+                    "Lunara found ${analysis.inferredMissedCycles} historical gap${if (analysis.inferredMissedCycles == 1) "" else "s"} that fit multiple typical cycles better than one unusually long cycle. They are down-weighted instead of being treated as ordinary cycle lengths."
+                )
             }
         }
         item {
             Spacer(Modifier.height(20.dp))
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                Text("Recent cycle lengths", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Observed start-to-start gaps", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
                 if (cycleLengths.isEmpty()) {
-                    Text("Log at least two period starts to calculate a cycle length.")
+                    Text("Log at least two period starts to calculate a cycle interval.")
                 } else {
                     cycleLengths.takeLast(8).forEachIndexed { index, days ->
                         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
-                            Text("Cycle ${index + 1}", modifier = Modifier.weight(1f))
+                            Text("Interval ${index + 1}", modifier = Modifier.weight(1f))
                             Text("$days days", fontWeight = FontWeight.SemiBold)
                         }
                         HorizontalDivider()
@@ -116,8 +133,14 @@ internal fun LearnScreen() {
         }
         item {
             LearnCard(
-                "What Lunara can and cannot know",
-                "Lunara can estimate dates from your logs. It cannot measure FSH, LH, oestrogen, progesterone, confirm ovulation, diagnose a condition, or tell whether pregnancy is possible on a particular day."
+                "How Lunara predicts",
+                "Period-start history is enough to run the model. Lunara learns your typical cycle distribution, gives recent cycles slightly more influence, down-weights outliers, considers whether long gaps may contain missed tracking, and updates its prediction range as the current cycle continues."
+            )
+        }
+        item {
+            LearnCard(
+                "What Lunara cannot know from dates alone",
+                "Lunara cannot measure FSH, LH, oestrogen or progesterone, confirm ovulation, diagnose a condition, or determine whether pregnancy is possible on a particular day. Ovulation and fertile-window colours are calendar estimates only."
             )
         }
     }
@@ -125,7 +148,7 @@ internal fun LearnScreen() {
 
 @Composable
 internal fun LearnCard(title: String, body: String) {
-    Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth()) {
+    Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(body)

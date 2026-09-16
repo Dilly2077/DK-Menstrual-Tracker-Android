@@ -3,6 +3,7 @@ package com.dkcycle.app
 import java.time.LocalDate
 
 enum class FlowIntensity { NONE, SPOTTING, LIGHT, MEDIUM, HEAVY }
+enum class AppearanceMode { SYSTEM, LIGHT, DARK }
 
 data class DailyLog(
     val date: LocalDate,
@@ -31,11 +32,19 @@ data class CycleAnalysis(
     val variabilityDays: Double,
     val nextPeriodStart: LocalDate?,
     val predictedPeriodEnd: LocalDate?,
+    val predictionWindowStart: LocalDate?,
+    val predictionWindowEnd: LocalDate?,
     val estimatedOvulation: LocalDate?,
+    val ovulationWindowStart: LocalDate?,
+    val ovulationWindowEnd: LocalDate?,
     val fertileStart: LocalDate?,
     val fertileEnd: LocalDate?,
+    val lutealStart: LocalDate?,
+    val lutealEnd: LocalDate?,
     val confidence: String,
     val cycleDay: Int?,
     val phase: String,
-    val phaseExplanation: String
+    val phaseExplanation: String,
+    val inferredMissedCycles: Int,
+    val usableCycleCount: Int
 )

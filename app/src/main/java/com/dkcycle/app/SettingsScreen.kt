@@ -15,6 +15,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
@@ -42,7 +43,9 @@ internal fun SettingsScreen(
     store: LocalStore,
     snackbar: SnackbarHostState,
     intimacyMarkerEnabled: Boolean,
-    onIntimacyMarkerChanged: (Boolean) -> Unit
+    onIntimacyMarkerChanged: (Boolean) -> Unit,
+    appearance: AppearanceMode,
+    onAppearanceChanged: (AppearanceMode) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -73,7 +76,31 @@ internal fun SettingsScreen(
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 30.dp)) {
-        item { PageHeader("Settings", "Keep the simple view simple") }
+        item { PageHeader("Settings", "Privacy, appearance and data controls") }
+        item {
+            SettingsCard(
+                "Appearance",
+                "Follow your phone automatically or choose a fixed Lunara theme."
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppearanceMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = appearance == mode,
+                            onClick = { onAppearanceChanged(mode) },
+                            label = {
+                                Text(
+                                    when (mode) {
+                                        AppearanceMode.SYSTEM -> "System"
+                                        AppearanceMode.LIGHT -> "Light"
+                                        AppearanceMode.DARK -> "Dark"
+                                    }
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
         item {
             SettingsCard(
                 "Optional private marker",
@@ -92,7 +119,13 @@ internal fun SettingsScreen(
         item {
             SettingsCard(
                 "Privacy by design",
-                "This V0.3 test build still has no INTERNET permission, no ads and no analytics. Live Partner will only be enabled after the encrypted sync service is connected; the old snapshot Partner Pass has been removed."
+                "Cycle data stays on this device. This build has no INTERNET permission, ads or analytics, and the prediction model does not require temperature, heart rate, LH tests, age, weight or an account."
+            )
+        }
+        item {
+            SettingsCard(
+                "Prediction model",
+                "Lunara predicts from period-start history alone. It models uncertainty, gives recent cycles slightly more influence, down-weights unusual gaps and can treat very long intervals as possible missed tracking rather than ordinary cycles. Ovulation remains a calendar estimate, not a measurement."
             )
         }
         item {

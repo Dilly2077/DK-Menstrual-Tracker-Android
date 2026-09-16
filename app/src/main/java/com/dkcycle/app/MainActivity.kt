@@ -9,6 +9,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,6 +43,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -77,24 +79,52 @@ internal enum class Screen(val label: String, val icon: ImageVector) {
     PARTNER("Partner", Icons.Default.Favorite)
 }
 
+private val LunaraLightColors = lightColorScheme(
+    primary = Color(0xFF9B4965),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFD9E4),
+    onPrimaryContainer = Color(0xFF3D0D20),
+    secondary = Color(0xFF6F5A73),
+    secondaryContainer = Color(0xFFF5DDF4),
+    background = Color(0xFFFFFAFB),
+    surface = Color(0xFFFFFAFB),
+    surfaceVariant = Color(0xFFF8EEF2),
+    onSurface = Color(0xFF23191D),
+    onSurfaceVariant = Color(0xFF58474E),
+    outline = Color(0xFF8A7A80)
+)
+
+private val LunaraDarkColors = darkColorScheme(
+    primary = Color(0xFFFFB0C7),
+    onPrimary = Color(0xFF5F1834),
+    primaryContainer = Color(0xFF7C304E),
+    onPrimaryContainer = Color(0xFFFFD9E4),
+    secondary = Color(0xFFD7BED7),
+    onSecondary = Color(0xFF3D2C40),
+    secondaryContainer = Color(0xFF564258),
+    onSecondaryContainer = Color(0xFFF5DDF4),
+    background = Color(0xFF171216),
+    surface = Color(0xFF171216),
+    surfaceVariant = Color(0xFF332A2F),
+    onSurface = Color(0xFFF0E5E9),
+    onSurfaceVariant = Color(0xFFD7C4CB),
+    outline = Color(0xFFA18C94)
+)
+
 @Composable
 fun LunaraApp() {
-    val colors = lightColorScheme(
-        primary = Color(0xFF9B4965),
-        onPrimary = Color.White,
-        primaryContainer = Color(0xFFFFD9E4),
-        onPrimaryContainer = Color(0xFF3D0D20),
-        secondary = Color(0xFF6F5A73),
-        secondaryContainer = Color(0xFFF5DDF4),
-        background = Color(0xFFFFFAFB),
-        surface = Color(0xFFFFFAFB),
-        surfaceVariant = Color(0xFFF8EEF2),
-        outline = Color(0xFF8A7A80)
-    )
+    val context = LocalContext.current
+    val store = remember { LocalStore(context.applicationContext) }
+    var appearance by remember { mutableStateOf(store.appearanceMode()) }
+    val systemDark = isSystemInDarkTheme()
+    val darkTheme = when (appearance) {
+        AppearanceMode.SYSTEM -> systemDark
+        AppearanceMode.LIGHT -> false
+        AppearanceMode.DARK -> true
+    }
+    val colors = if (darkTheme) LunaraDarkColors else LunaraLightColors
 
     MaterialTheme(colorScheme = colors) {
-        val context = LocalContext.current
-        val store = remember { LocalStore(context.applicationContext) }
         var logs by remember { mutableStateOf(store.loadLogs()) }
         var screenName by rememberSaveable { mutableStateOf(Screen.TODAY.name) }
         var previousScreenName by rememberSaveable { mutableStateOf(Screen.TODAY.name) }
@@ -180,6 +210,11 @@ fun LunaraApp() {
                         onIntimacyMarkerChanged = {
                             intimacyMarkerEnabled = it
                             store.setIntimacyMarkerEnabled(it)
+                        },
+                        appearance = appearance,
+                        onAppearanceChanged = {
+                            appearance = it
+                            store.setAppearanceMode(it)
                         }
                     )
                     Screen.PARTNER -> PartnerScreen(logs) {
@@ -272,7 +307,7 @@ internal fun TodayScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(analysis.phase, style = MaterialTheme.typography.headlineSmall)
-                        Text(analysis.phaseExplanation.replace("DKCycle", "Lunara"))
+                        Text(analysis.phaseExplanation)
                         Button(onClick = onLog) { Text("Detailed log") }
                     }
                 }
@@ -283,14 +318,29 @@ internal fun TodayScreen(
                         modifier = Modifier.weight(1f),
                         title = "Next period",
                         value = analysis.nextPeriodStart?.format(shortDate()) ?: "Learning",
-                        note = if (analysis.nextPeriodStart == null) "Add a bleeding day" else "${analysis.confidence} confidence"
+                        note = when {
+                            analysis.nextPeriodStart == null -> "Add or continue logging periods"
+                            else -> "${analysis.confidence} confidence"
+                        }
                     )
                     MetricCard(
                         modifier = Modifier.weight(1f),
                         title = "Typical cycle",
                         value = "${analysis.averageCycleLength} days",
-                        note = if (analysis.periodStarts.size < 2) "Uses a default while learning" else "Based on recent cycles"
+                        note = if (analysis.usableCycleCount == 0) "Prior while learning" else "Personalised estimate"
                     )
+                }
+
+                if (analysis.predictionWindowStart != null && analysis.predictionWindowEnd != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+                        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Prediction range", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Most likely start ${analysis.nextPeriodStart?.format(shortDate())}. Approximate 80% range ${analysis.predictionWindowStart.format(shortDate())}–${analysis.predictionWindowEnd.format(shortDate())}."
+                            )
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(12.dp))

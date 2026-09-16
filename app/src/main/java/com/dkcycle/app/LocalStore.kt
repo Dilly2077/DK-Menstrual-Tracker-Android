@@ -20,7 +20,7 @@ class LocalStore(context: Context) {
 
     fun exportJson(logs: Map<LocalDate, DailyLog>): String = JSONObject().apply {
         put("format", "Lunara")
-        put("version", 3)
+        put("version", 4)
         put("logs", JSONArray(encodeLogs(logs)))
     }.toString(2)
 
@@ -37,6 +37,14 @@ class LocalStore(context: Context) {
     fun intimacyMarkerEnabled(): Boolean = prefs.getBoolean(KEY_INTIMACY_MARKER, false)
     fun setIntimacyMarkerEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_INTIMACY_MARKER, enabled).apply()
+    }
+
+    fun appearanceMode(): AppearanceMode = runCatching {
+        AppearanceMode.valueOf(prefs.getString(KEY_APPEARANCE, AppearanceMode.SYSTEM.name) ?: AppearanceMode.SYSTEM.name)
+    }.getOrDefault(AppearanceMode.SYSTEM)
+
+    fun setAppearanceMode(mode: AppearanceMode) {
+        prefs.edit().putString(KEY_APPEARANCE, mode.name).apply()
     }
 
     // Legacy V0.2 Partner Pass is retained only so an old value can be cleared during migration.
@@ -89,6 +97,7 @@ class LocalStore(context: Context) {
         private const val KEY_LOGS = "logs_json"
         private const val KEY_HOME_PROMPT = "home_shortcut_prompt_shown"
         private const val KEY_INTIMACY_MARKER = "intimacy_marker_enabled"
+        private const val KEY_APPEARANCE = "appearance_mode"
         private const val KEY_PARTNER_PASS = "partner_pass"
     }
 }
