@@ -1,14 +1,14 @@
 package com.dkcycle.app
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon as AndroidIcon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,47 +17,32 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,20 +55,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
-import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { DKCycleApp() }
+        setContent { LunaraApp() }
     }
 }
 
@@ -93,11 +72,12 @@ internal enum class Screen(val label: String, val icon: ImageVector) {
     LOG("Log", Icons.Default.AddCircle),
     INSIGHTS("Insights", Icons.Default.Insights),
     LEARN("Learn", Icons.Default.MenuBook),
-    SETTINGS("Settings", Icons.Default.Settings)
+    SETTINGS("Settings", Icons.Default.Settings),
+    PARTNER("Partner", Icons.Default.Favorite)
 }
 
 @Composable
-fun DKCycleApp() {
+fun LunaraApp() {
     val colors = lightColorScheme(
         primary = Color(0xFF8E4F6B),
         onPrimary = Color.White,
@@ -119,6 +99,11 @@ fun DKCycleApp() {
         val screen = Screen.valueOf(screenName)
         val analysis = remember(logs) { CycleEngine.analyse(logs.values.toList()) }
         val snackbar = remember { SnackbarHostState() }
+        val scope = rememberCoroutineScope()
+        var showHomePrompt by remember { mutableStateOf(!store.hasShownHomeShortcutPrompt()) }
+        val primaryScreens = remember {
+            listOf(Screen.TODAY, Screen.CALENDAR, Screen.LOG, Screen.INSIGHTS, Screen.LEARN, Screen.SETTINGS)
+        }
 
         fun save(updated: Map<LocalDate, DailyLog>) {
             logs = updated
@@ -129,7 +114,7 @@ fun DKCycleApp() {
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 NavigationBar {
-                    Screen.entries.forEach { destination ->
+                    primaryScreens.forEach { destination ->
                         NavigationBarItem(
                             selected = screen == destination,
                             onClick = { screenName = destination.name },
@@ -142,16 +127,66 @@ fun DKCycleApp() {
         ) { padding ->
             Surface(modifier = Modifier.fillMaxSize().padding(padding)) {
                 when (screen) {
-                    Screen.TODAY -> TodayScreen(analysis, logs) { screenName = Screen.LOG.name }
+                    Screen.TODAY -> TodayScreen(
+                        analysis = analysis,
+                        logs = logs,
+                        onLog = { screenName = Screen.LOG.name },
+                        onPartner = { screenName = Screen.PARTNER.name }
+                    )
                     Screen.CALENDAR -> CalendarScreen(logs, analysis)
                     Screen.LOG -> LogScreen(logs, ::save, snackbar)
                     Screen.INSIGHTS -> InsightsScreen(logs, analysis)
                     Screen.LEARN -> LearnScreen()
                     Screen.SETTINGS -> SettingsScreen(logs, ::save, store, snackbar)
+                    Screen.PARTNER -> PartnerScreen(logs, store, snackbar) { screenName = Screen.TODAY.name }
                 }
             }
         }
+
+        if (showHomePrompt) {
+            AlertDialog(
+                onDismissRequest = {
+                    store.markHomeShortcutPromptShown()
+                    showHomePrompt = false
+                },
+                title = { Text("Add Lunara to your Home screen?") },
+                text = {
+                    Text("Android has installed Lunara in your app drawer. Lunara can ask your launcher to add a Home-screen shortcut so it is easier to find.")
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        store.markHomeShortcutPromptShown()
+                        showHomePrompt = false
+                        if (!requestLunaraHomeShortcut(context)) {
+                            scope.launch { snackbar.showSnackbar("Your current launcher does not support app-requested pinning") }
+                        }
+                    }) { Text("Add to Home") }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = {
+                        store.markHomeShortcutPromptShown()
+                        showHomePrompt = false
+                    }) { Text("Not now") }
+                }
+            )
+        }
     }
+}
+
+internal fun requestLunaraHomeShortcut(context: Context): Boolean {
+    val manager = context.getSystemService(ShortcutManager::class.java) ?: return false
+    if (!manager.isRequestPinShortcutSupported) return false
+    val launchIntent = Intent(context, MainActivity::class.java).apply {
+        action = Intent.ACTION_MAIN
+        addCategory(Intent.CATEGORY_LAUNCHER)
+    }
+    val shortcut = ShortcutInfo.Builder(context, "lunara-home")
+        .setShortLabel("Lunara")
+        .setLongLabel("Open Lunara")
+        .setIcon(AndroidIcon.createWithResource(context, R.mipmap.ic_launcher))
+        .setIntent(launchIntent)
+        .build()
+    return manager.requestPinShortcut(shortcut, null)
 }
 
 @Composable
@@ -169,12 +204,17 @@ internal fun PageHeader(title: String, subtitle: String? = null, trailing: (@Com
 }
 
 @Composable
-internal fun TodayScreen(analysis: CycleAnalysis, logs: Map<LocalDate, DailyLog>, onLog: () -> Unit) {
+internal fun TodayScreen(
+    analysis: CycleAnalysis,
+    logs: Map<LocalDate, DailyLog>,
+    onLog: () -> Unit,
+    onPartner: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        item { PageHeader("DKCycle", "Private, local cycle tracking") }
+        item { PageHeader("Lunara", "Private, local cycle tracking") }
         item {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Card(
@@ -189,7 +229,7 @@ internal fun TodayScreen(analysis: CycleAnalysis, logs: Map<LocalDate, DailyLog>
                             fontWeight = FontWeight.Bold
                         )
                         Text(analysis.phase, style = MaterialTheme.typography.headlineSmall)
-                        Text(analysis.phaseExplanation)
+                        Text(analysis.phaseExplanation.replace("DKCycle", "Lunara"))
                         Button(onClick = onLog) { Text("Log today") }
                     }
                 }
@@ -224,6 +264,15 @@ internal fun TodayScreen(analysis: CycleAnalysis, logs: Map<LocalDate, DailyLog>
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+                    Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Partner", fontWeight = FontWeight.Bold)
+                        Text("Share a read-only cycle snapshot with someone you trust, or import a Partner Pass they sent you.")
+                        OutlinedButton(onClick = onPartner) { Text("Open Partner") }
                     }
                 }
 

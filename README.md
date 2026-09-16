@@ -1,8 +1,8 @@
-# DKCycle Android
+# Lunara Android
 
-DKCycle is a privacy-first Android menstrual-cycle tracker. V0.1 works locally without an account, ads, analytics, or network access.
+Lunara is the current placeholder brand for this privacy-first Android menstrual-cycle tracker. V0.2 keeps the existing `com.dkcycle.app` application ID so V0.1 installations can be upgraded without losing locally stored cycle data.
 
-## V0.1 features
+## V0.2 features
 
 - Log bleeding intensity, symptoms, mood, pain and notes by date.
 - Calendar view for logged periods, predicted periods and an estimated fertile window.
@@ -12,25 +12,26 @@ DKCycle is a privacy-first Android menstrual-cycle tracker. V0.1 works locally w
 - Cycle-day and likely-phase explanation with the main reproductive hormones involved.
 - Insights for average cycle length, average period length, variability and common symptoms.
 - Built-in cycle physiology guide.
-- Local JSON export and restore.
-- No `INTERNET` permission in the Android manifest.
-- GitHub Actions workflow that runs unit tests and produces a downloadable debug APK.
+- Local JSON export and restore, with backward-compatible DKCycle V0.1 import.
+- Proper adaptive launcher icon including Android 13+ monochrome/themed icon support.
+- First-launch and Settings options to request a pinned Home-screen shortcut.
+- Offline Partner Pass sharing: a user can explicitly share a read-only snapshot containing bleeding dates needed for cycle/calendar estimates. Symptoms, mood, pain, temperature and notes are excluded.
+- Partner Pass import provides a read-only shared overview and calendar. It is a snapshot rather than live server sync.
+- No Android `INTERNET` permission, account, ads or analytics in this build.
 
-## Prediction model
+## Partner Pass privacy model
 
-Period starts are detected from runs of non-spotting bleeding. Up to the six most recent valid cycle lengths are used, with more recent cycles receiving greater weight. The fertile-window display is a calendar estimate based on an estimated ovulation date 14 days before the next predicted period; it does not confirm ovulation and must not be used as contraception.
+Partner Pass deliberately avoids a backend. The code is created locally and only leaves Lunara when the user chooses an Android share destination. It includes up to 24 months of bleeding/spotting dates and flow intensity, but excludes symptoms, mood, pain, temperature and notes. Because it is a static offline snapshot, Lunara cannot remotely revoke a pass after it has been sent; the recipient can clear it locally, and refreshed data requires a newly shared pass.
+
+A future live partner-sync version would require an opt-in encrypted relay/account architecture and should be treated as a separate privacy/security feature rather than silently adding network access.
 
 ## Build on GitHub
 
 Every push to `main` and every manual workflow run executes `.github/workflows/android-apk.yml`.
 
-Open **Actions → Build DKCycle APK → Run workflow**. After the build completes, download the `DKCycle-debug-apk` artifact. It contains `app-debug.apk`.
+Open **Actions → Build Lunara APK → Run workflow**. After the build completes, download the `Lunara-v0.2-debug-apk` artifact. It contains `app-debug.apk`.
 
-The first verified successful build is workflow run **#6** (run ID `35039535301`) from commit `acdc37990ab4fead89f9749bc13b1569fd31bdbb`.
-
-## Local build
-
-Current project tooling:
+## Tooling
 
 - Android Gradle Plugin 9.4.0
 - Gradle 9.6.0
@@ -43,15 +44,6 @@ Current project tooling:
 - `targetSdk` 36
 - JDK 17
 
-With Android SDK platform 36 installed:
-
-```bash
-gradle testDebugUnitTest
-gradle assembleDebug
-```
-
-The APK is produced at `app/build/outputs/apk/debug/app-debug.apk`.
-
 ## Medical limitation
 
-DKCycle is a tracking and educational tool. Date-derived predictions are estimates. It does not measure hormone concentrations, confirm ovulation, diagnose a condition, provide contraception, or replace pregnancy testing or clinical assessment.
+Lunara is a tracking and educational tool. Date-derived predictions are estimates. It does not measure hormone concentrations, confirm ovulation, diagnose a condition, provide contraception, or replace pregnancy testing or clinical assessment.

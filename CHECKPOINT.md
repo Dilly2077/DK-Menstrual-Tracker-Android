@@ -1,42 +1,30 @@
-# DKCycle V0.1 checkpoint
+# Lunara V0.2 checkpoint
 
-Updated 16 September 2026.
+Prepared 16 September 2026.
 
-## Implemented and verified
+## Changes from V0.1
 
-- Native Kotlin + Jetpack Compose Android app.
-- Entire data model stored locally in SharedPreferences as JSON.
-- Bleeding, symptoms, mood, pain and notes logging.
-- Weighted recent-cycle prediction engine with variability/confidence reporting.
-- Today, Calendar, Log, Insights, Learn and Settings screens.
-- JSON export/import.
-- No Android `INTERNET` permission.
-- Unit tests for 28-day prediction and spotting exclusion.
-- Stable Android API 36 build configuration.
-- GitHub Actions workflow that installs Android API 36, runs unit tests, assembles the debug APK and uploads it as an artifact.
-- Verified successful workflow run #6 (ID `35039535301`) on commit `acdc37990ab4fead89f9749bc13b1569fd31bdbb`.
-- Verified generated APK: 18,547,563 bytes; SHA-256 `e66873e2435c0b74aa3b9a5fb5686b51c9a0c24098bf255734292e2e28505170`.
+- Visible placeholder brand changed from DKCycle to Lunara while retaining `com.dkcycle.app` and the original `dkcycle` SharedPreferences file for upgrade/data continuity.
+- Added a proper adaptive launcher icon with a mauve background, crescent motif and themed-icon support on Android 13+.
+- Added an in-app Home-screen pin request on first launch and from Settings. The launcher still requires user approval.
+- Added Partner Pass sharing and import. The owner shares only bleeding/spotting dates and flow intensity from the last 24 months; symptoms, mood, pain, temperature and notes are excluded.
+- Added a read-only partner overview and calendar.
+- Partner Pass remains offline and snapshot-based; there is still no Android `INTERNET` permission or backend.
+- Existing DKCycle V0.1 JSON backups remain import-compatible.
+- Added Partner Pass privacy tests.
+- Bumped app version to 0.2.0 / versionCode 2.
 
-## Current dependency baseline
+## Important limitation
 
-- Android Gradle Plugin 9.4.0
-- Gradle 9.6.0
-- Kotlin / Compose compiler plugin 2.4.20
-- Jetpack Compose 1.11.4
-- Material 3 1.4.0
-- AndroidX Core KTX 1.17.0
-- AndroidX Activity Compose 1.11.0
-- `compileSdk` 36
-- `targetSdk` 36
-- JDK 17
+Partner Pass is not equivalent to Flo's live account pairing. A sent offline snapshot cannot be remotely revoked and does not auto-refresh. Live/revocable partner sync requires an opt-in encrypted network service and should be engineered separately.
 
-## Next engineering priorities
+## Next priorities
 
-1. Add a proper adaptive launcher icon and polished onboarding.
-2. Add notification/reminder scheduling locally.
-3. Add temperature and cervical-mucus fields to the log UI (the model already contains temperature storage).
-4. Add cycle-history editing and a clearer period-start correction workflow.
-5. Add optional local app lock / biometric gate.
-6. Add encrypted-at-rest storage before treating the app as production-ready for sensitive health data.
-7. Add accessibility testing and broader unit/UI test coverage.
-8. Build a signed release APK/AAB only after signing-key handling is defined.
+1. Validate the V0.2 clean CI build and generated APK.
+2. Consider live end-to-end encrypted partner sync as an optional V0.3 feature.
+3. Add notification/reminder scheduling locally.
+4. Add temperature and cervical-mucus logging UI.
+5. Add cycle-history editing and clearer period-start correction.
+6. Add optional biometric/app lock and encrypted-at-rest storage.
+7. Broaden accessibility and UI test coverage.
+8. Create a signed release APK/AAB after signing-key handling is defined.

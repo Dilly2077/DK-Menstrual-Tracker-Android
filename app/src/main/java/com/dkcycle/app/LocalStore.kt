@@ -6,6 +6,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 
 class LocalStore(context: Context) {
+    // Keep the original preference file name so V0.1 data survives the visible rename to Lunara.
     private val prefs = context.getSharedPreferences("dkcycle", Context.MODE_PRIVATE)
 
     fun loadLogs(): Map<LocalDate, DailyLog> {
@@ -18,16 +19,33 @@ class LocalStore(context: Context) {
     }
 
     fun exportJson(logs: Map<LocalDate, DailyLog>): String = JSONObject().apply {
-        put("format", "DKCycle")
-        put("version", 1)
+        put("format", "Lunara")
+        put("version", 2)
         put("logs", JSONArray(encodeLogs(logs)))
     }.toString(2)
 
     fun importJson(raw: String): Map<LocalDate, DailyLog> {
         val root = JSONObject(raw)
-        require(root.optString("format") == "DKCycle") { "Not a DKCycle export" }
+        val format = root.optString("format")
+        require(format == "Lunara" || format == "DKCycle") { "Not a Lunara or DKCycle export" }
         val logsArray = root.getJSONArray("logs")
         return decodeLogs(logsArray.toString())
+    }
+
+    fun hasShownHomeShortcutPrompt(): Boolean = prefs.getBoolean(KEY_HOME_PROMPT, false)
+
+    fun markHomeShortcutPromptShown() {
+        prefs.edit().putBoolean(KEY_HOME_PROMPT, true).apply()
+    }
+
+    fun loadPartnerPass(): String? = prefs.getString(KEY_PARTNER_PASS, null)
+
+    fun savePartnerPass(pass: String) {
+        prefs.edit().putString(KEY_PARTNER_PASS, pass).apply()
+    }
+
+    fun clearPartnerPass() {
+        prefs.edit().remove(KEY_PARTNER_PASS).apply()
     }
 
     private fun encodeLogs(logs: Map<LocalDate, DailyLog>): String {
@@ -71,5 +89,7 @@ class LocalStore(context: Context) {
 
     companion object {
         private const val KEY_LOGS = "logs_json"
+        private const val KEY_HOME_PROMPT = "home_shortcut_prompt_shown"
+        private const val KEY_PARTNER_PASS = "partner_pass"
     }
 }

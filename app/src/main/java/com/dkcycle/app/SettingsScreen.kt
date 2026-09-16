@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -18,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,16 +75,28 @@ internal fun SettingsScreen(
         item {
             SettingsCard(
                 "Privacy by design",
-                "DKCycle has no INTERNET permission, no account, no advertising SDK and no analytics SDK in this build. Your cycle logs are stored locally on the device."
+                "Lunara has no INTERNET permission, no account, no advertising SDK and no analytics SDK in this build. Your cycle logs are stored locally on the device. Partner Pass sharing only leaves the app when you explicitly choose a share destination."
             )
         }
         item {
             SettingsCard(
+                "Home screen",
+                "Ask your Android launcher to pin a Lunara shortcut to the Home screen. Android always leaves the final placement under your control."
+            ) {
+                Button(onClick = {
+                    if (!requestLunaraHomeShortcut(context)) {
+                        scope.launch { snackbar.showSnackbar("Your current launcher does not support app-requested pinning") }
+                    }
+                }) { Text("Add to Home screen") }
+            }
+        }
+        item {
+            SettingsCard(
                 "Export & restore",
-                "Create a portable JSON backup or restore one you previously exported."
+                "Create a portable JSON backup or restore a Lunara backup. Existing DKCycle V0.1 exports remain compatible."
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = { exportLauncher.launch("DKCycle-backup-${LocalDate.now()}.json") }) { Text("Export") }
+                    Button(onClick = { exportLauncher.launch("Lunara-backup-${LocalDate.now()}.json") }) { Text("Export") }
                     OutlinedButton(onClick = { importLauncher.launch("application/json") }) { Text("Import") }
                 }
             }
@@ -96,7 +108,7 @@ internal fun SettingsScreen(
             )
         }
         item {
-            SettingsCard("Data", "Delete all locally stored cycle logs from this installation.") {
+            SettingsCard("Data", "Delete all locally stored cycle logs and any imported Partner Pass from this installation.") {
                 Button(
                     onClick = { confirmDelete = true },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -108,13 +120,14 @@ internal fun SettingsScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete all DKCycle data?") },
+            title = { Text("Delete all Lunara data?") },
             text = { Text("This cannot be undone unless you have an exported backup.") },
             confirmButton = {
                 Button(onClick = {
                     save(emptyMap())
+                    store.clearPartnerPass()
                     confirmDelete = false
-                    scope.launch { snackbar.showSnackbar("All local data deleted") }
+                    scope.launch { snackbar.showSnackbar("All local health data deleted") }
                 }) { Text("Delete") }
             },
             dismissButton = { OutlinedButton(onClick = { confirmDelete = false }) { Text("Cancel") } }
