@@ -1,6 +1,6 @@
 # DKCycle Android
 
-DKCycle is a privacy-first Android menstrual-cycle tracker. V0.1 is designed to work locally without an account, ads, analytics, or network access.
+DKCycle is a privacy-first Android menstrual-cycle tracker. V0.1 works locally without an account, ads, analytics, or network access.
 
 ## V0.1 features
 
@@ -26,19 +26,24 @@ Every push to `main` and every manual workflow run executes `.github/workflows/a
 
 Open **Actions → Build DKCycle APK → Run workflow**. After the build completes, download the `DKCycle-debug-apk` artifact. It contains `app-debug.apk`.
 
+The first verified successful build is workflow run **#6** (run ID `35039535301`) from commit `acdc37990ab4fead89f9749bc13b1569fd31bdbb`.
+
 ## Local build
 
 Current project tooling:
 
 - Android Gradle Plugin 9.4.0
 - Gradle 9.6.0
-- Kotlin 2.4.20
-- Jetpack Compose BOM 2026.08.00
-- `compileSdk` 37
+- Kotlin / Compose compiler plugin 2.4.20
+- Jetpack Compose 1.11.4
+- Material 3 1.4.0
+- AndroidX Core KTX 1.17.0
+- AndroidX Activity Compose 1.11.0
+- `compileSdk` 36
 - `targetSdk` 36
 - JDK 17
 
-With an Android SDK containing platform 37 installed:
+With Android SDK platform 36 installed:
 
 ```bash
 gradle testDebugUnitTest
