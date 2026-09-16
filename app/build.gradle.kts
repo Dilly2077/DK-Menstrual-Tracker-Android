@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.dkcycle.app"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.dkcycle.app"
