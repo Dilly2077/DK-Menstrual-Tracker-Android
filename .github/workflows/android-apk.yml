@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'applicationId = "com.dkcycle.app"' app/build.gradle.kts
-          grep -q 'versionCode = 6' app/build.gradle.kts
+          grep -q 'versionCode = 7' app/build.gradle.kts
           CERT_SHA=$(keytool -exportcert \
             -keystore development-signing/lunara-development.jks \
             -storepass lunara-development \
@@ -64,6 +64,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Lunara-v0.6-debug-apk
+          name: Lunara-v0.7-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
