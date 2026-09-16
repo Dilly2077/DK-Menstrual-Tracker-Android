@@ -31,6 +31,18 @@ jobs:
       - name: Install Android platform
         run: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
+      - name: Verify update identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'applicationId = "com.dkcycle.app"' app/build.gradle.kts
+          grep -q 'versionCode = 6' app/build.gradle.kts
+          CERT_SHA=$(keytool -exportcert \
+            -keystore development-signing/lunara-development.jks \
+            -storepass lunara-development \
+            -alias lunara-development | sha256sum | awk '{print toupper($1)}')
+          test "$CERT_SHA" = "BD2745001D57B3992FD6D05AD6C0E26C37BB22E74609E5A9C39F4585EF87E3B7"
+
       - name: Set up Gradle 9.6
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -42,9 +54,16 @@ jobs:
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
+      - name: Verify built APK signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/local/lib/android/sdk/build-tools/36.0.0/apksigner verify --print-certs app/build/outputs/apk/debug/app-debug.apk | tee /tmp/signing.txt
+          grep -qi 'Signer #1 certificate SHA-256 digest: bd2745001d57b3992fd6d05ad6c0e26c37bb22e74609e5a9c39f4585ef87e3b7' /tmp/signing.txt
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Lunara-v0.5-debug-apk
+          name: Lunara-v0.6-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

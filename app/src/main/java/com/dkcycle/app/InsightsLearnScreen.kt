@@ -1,5 +1,7 @@
 package com.dkcycle.app
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,12 +13,28 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
@@ -45,15 +63,7 @@ internal fun InsightsScreen(logs: Map<LocalDate, DailyLog>, analysis: CycleAnaly
                 Spacer(Modifier.height(12.dp))
                 LearnCard(
                     "Current prediction range",
-                    "Most likely next period: ${analysis.nextPeriodStart?.format(shortDate())}. Approximate 80% model window: ${analysis.predictionWindowStart.format(shortDate())} – ${analysis.predictionWindowEnd.format(shortDate())}. This range updates as the current cycle continues."
-                )
-            }
-        }
-        if (analysis.inferredMissedCycles > 0) {
-            item {
-                LearnCard(
-                    "Possible missed tracking",
-                    "Lunara found ${analysis.inferredMissedCycles} historical gap${if (analysis.inferredMissedCycles == 1) "" else "s"} that fit multiple typical cycles better than one unusually long cycle. They are down-weighted instead of being treated as ordinary cycle lengths."
+                    "Most likely next period: ${analysis.nextPeriodStart?.format(shortDate())}. Approximate 80% model window: ${analysis.predictionWindowStart.format(shortDate())} – ${analysis.predictionWindowEnd.format(shortDate())}."
                 )
             }
         }
@@ -90,58 +100,182 @@ internal fun InsightsScreen(logs: Map<LocalDate, DailyLog>, analysis: CycleAnaly
     }
 }
 
+private data class LearnTopic(
+    val title: String,
+    val shortTitle: String,
+    val imageRes: Int,
+    val summary: String,
+    val timing: String,
+    val hormonePattern: String,
+    val details: String,
+    val note: String
+)
+
 @Composable
 internal fun LearnScreen() {
+    val topics = remember {
+        listOf(
+            LearnTopic(
+                title = "Cycle overview",
+                shortTitle = "Overview",
+                imageRes = R.drawable.learn_overview,
+                summary = "A cycle moves through menstrual, follicular, ovulation and luteal phases. The timing is different for everyone.",
+                timing = "Whole cycle",
+                hormonePattern = "Hormones rise and fall",
+                details = "Day 1 is the first day of menstrual bleeding. Follicles then develop in the ovary, ovulation may occur later in the cycle, and the luteal phase follows before the next period.",
+                note = "Lunara estimates timing from period history. It cannot confirm ovulation from dates alone."
+            ),
+            LearnTopic(
+                title = "Menstrual phase",
+                shortTitle = "Menstrual",
+                imageRes = R.drawable.learn_menstrual,
+                summary = "Bleeding begins as the uterine lining sheds. This is counted as the start of a new cycle.",
+                timing = "First days of the cycle",
+                hormonePattern = "Oestrogen + progesterone low",
+                details = "Oestrogen and progesterone are relatively low. The endometrium built during the previous cycle is shed while the next ovarian cycle begins in the background.",
+                note = "Flow and duration vary between people and between cycles."
+            ),
+            LearnTopic(
+                title = "Follicular phase",
+                shortTitle = "Follicular",
+                imageRes = R.drawable.learn_follicular,
+                summary = "Follicles in the ovary develop while the uterine lining starts building again.",
+                timing = "After bleeding to ovulation",
+                hormonePattern = "Oestrogen usually rises",
+                details = "FSH supports follicle development. As a dominant follicle develops, oestrogen usually rises and the endometrium becomes more proliferative.",
+                note = "This phase can vary considerably in length, which limits date-only prediction."
+            ),
+            LearnTopic(
+                title = "Ovulation",
+                shortTitle = "Ovulation",
+                imageRes = R.drawable.learn_ovulation,
+                summary = "Ovulation is the release of an egg from the ovary. Calendar apps can only estimate when it happens.",
+                timing = "Often around mid-cycle",
+                hormonePattern = "LH surge precedes ovulation",
+                details = "A sustained rise in oestradiol helps trigger the LH surge. Ovulation usually follows, but the exact day can shift even in otherwise regular cycles.",
+                note = "Lunara does not confirm ovulation. Its fertile and ovulation dates are estimates only."
+            ),
+            LearnTopic(
+                title = "Luteal phase",
+                shortTitle = "Luteal",
+                imageRes = R.drawable.learn_luteal,
+                summary = "After ovulation, the corpus luteum produces progesterone until the next period begins.",
+                timing = "Ovulation to next period",
+                hormonePattern = "Progesterone usually rises",
+                details = "Progesterone helps support the endometrium after ovulation. If pregnancy does not occur, progesterone and oestrogen fall and menstruation begins.",
+                note = "A late period can have many causes. Lunara cannot diagnose why a cycle changes."
+            )
+        )
+    }
+    var selectedIndex by remember { mutableIntStateOf(0) }
+    val topic = topics[selectedIndex]
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        contentPadding = PaddingValues(bottom = 30.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item { PageHeader("Learn", "Pick a phase") }
         item {
-            Text("Learn", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("Cycle physiology without the paywall", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ScrollableTabRow(
+                selectedTabIndex = selectedIndex,
+                edgePadding = 12.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                topics.forEachIndexed { index, item ->
+                    Tab(
+                        selected = selectedIndex == index,
+                        onClick = { selectedIndex = index },
+                        text = { Text(item.shortTitle) }
+                    )
+                }
+            }
         }
         item {
-            LearnCard(
-                "The cycle in one minute",
-                "Day 1 is the first day of menstrual bleeding. In the follicular phase, FSH supports follicle development and oestrogen tends to rise. A mid-cycle LH surge precedes ovulation. In the luteal phase, progesterone from the corpus luteum predominates. If pregnancy does not occur, progesterone and oestrogen fall and menstruation begins."
-            )
+            LearnPhaseCard(topic)
         }
         item {
-            LearnCard(
-                "Menstrual phase",
-                "The functional endometrium is shed after ovarian steroid hormone concentrations fall. FSH begins to rise enough to recruit a new cohort of ovarian follicles."
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                LearnFactCard(Modifier.weight(1f), "Typical timing", topic.timing)
+                LearnFactCard(Modifier.weight(1f), "Hormone pattern", topic.hormonePattern)
+            }
         }
         item {
-            LearnCard(
-                "Follicular phase",
-                "Developing follicles produce increasing oestradiol. Oestrogen promotes proliferative growth of the endometrium. The dominant follicle becomes increasingly responsive to FSH and LH."
-            )
+            LearnMoreDetails(topic)
         }
         item {
-            LearnCard(
-                "Ovulation",
-                "Sustained high oestradiol switches to positive feedback at the hypothalamic-pituitary axis, producing the LH surge. Ovulation usually follows the surge; calendar timing varies between people and between cycles."
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("Keep in mind", fontWeight = FontWeight.Bold)
+                    Text(topic.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
-        item {
-            LearnCard(
-                "Luteal phase",
-                "The ruptured follicle becomes the corpus luteum, producing progesterone and oestrogen. Progesterone changes the endometrium from proliferative to secretory. Without pregnancy, corpus luteum function declines and steroid concentrations fall."
+    }
+}
+
+@Composable
+private fun LearnPhaseCard(topic: LearnTopic) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(28.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Image(
+                painter = painterResource(topic.imageRes),
+                contentDescription = "${topic.title} illustration",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(230.dp)
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)),
+                contentScale = ContentScale.Crop
             )
+            Column(
+                modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(topic.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(topic.summary)
+            }
         }
-        item {
-            LearnCard(
-                "How Lunara predicts",
-                "Period-start history is enough to run the model. Lunara learns your typical cycle distribution, gives recent cycles slightly more influence, down-weights outliers, considers whether long gaps may contain missed tracking, and updates its prediction range as the current cycle continues."
-            )
+    }
+}
+
+@Composable
+private fun LearnFactCard(modifier: Modifier, label: String, value: String) {
+    Card(modifier = modifier, shape = RoundedCornerShape(20.dp)) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
         }
-        item {
-            LearnCard(
-                "What Lunara cannot know from dates alone",
-                "Lunara cannot measure FSH, LH, oestrogen or progesterone, confirm ovulation, diagnose a condition, or determine whether pregnancy is possible on a particular day. Ovulation and fertile-window colours are calendar estimates only."
-            )
+    }
+}
+
+@Composable
+private fun LearnMoreDetails(topic: LearnTopic) {
+    var expanded by remember(topic.title) { mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (expanded) "Hide details" else "More details", modifier = Modifier.weight(1f))
+                Icon(
+                    if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = null
+                )
+            }
+            AnimatedVisibility(expanded) {
+                Text(topic.details)
+            }
         }
     }
 }
