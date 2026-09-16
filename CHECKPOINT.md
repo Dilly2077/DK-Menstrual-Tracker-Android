@@ -1,27 +1,21 @@
-# Lunara V0.3 checkpoint
+# Averelle v0.8 checkpoint
 
 Updated 16 September 2026.
 
 ## Implemented in this pass
 
-- Fixed the confusing blank-day logging state: an empty day is no longer treated as a meaningful log.
-- Calendar is now a quick-log surface. Tap a past/today date and use the 🩸 bleeding marker without opening the detailed form.
-- Detailed Log remains available for flow level, symptoms, mood, pain and notes.
-- Added an optional private 💗 marker, disabled by default and controlled in Settings.
-- Added predicted-start indicator (✦) to the calendar.
-- Added Compose back handling so opening Detailed Log or Partner and using Android back returns within Lunara instead of immediately exiting.
-- Replaced the crescent launcher artwork with a four-petal cycle mark and retained adaptive/themed-icon support.
-- Version bumped to 0.3.0 / versionCode 3.
-- Development signing remains pinned to the same Lunara development keystore introduced for V0.2, so V0.3+ test builds should update in place from the stable-signed V0.2 build.
-- Removed the one-off Partner Pass UI and its requirement for existing logs.
+- Renamed the user-facing app from Lunara to Averelle across the launcher label, Home screen, widgets, Settings, prompts, backup filename and Learn copy.
+- Kept applicationId `com.dkcycle.app` and the existing development signing identity unchanged so v0.8 remains an in-place update for existing stable-signed builds.
+- Bumped the Android build to versionName 0.8.0 / versionCode 8.
+- Replaced the Learn section's raster WebP phase illustrations with resolution-independent Jetpack Compose Canvas artwork.
+- Removed the Learn screen's runtime dependency on the old Follicular WebP asset, addressing the Android crash seen when opening the Follicular tab.
+- Added distinct scalable illustrations for overview, menstrual, follicular, ovulation and luteal topics.
+- Kept the existing cycle prediction engine, themes, widgets, logging, Insights and privacy model unchanged.
 
-## Partner status
+## Validation target
 
-The requested Partner experience is now defined as persistent/live pairing rather than snapshots. A secure backend is still required for two phones to keep an ongoing shared read-only view in sync. Lunara does not fall back to an unencrypted public relay. The intended shared dataset excludes detailed notes, symptoms, mood, pain, temperature and the private heart marker.
+GitHub Actions must pass unit tests, Android compilation and APK signing-certificate verification before the v0.8 APK is distributed.
 
-## Next engineering priority
+## Compatibility
 
-1. Connect/provision the secure sync backend and finish live pairing + revocation.
-2. Add background sync/retry and visible last-synced state.
-3. Add UI/instrumentation tests for calendar quick logging and back navigation.
-4. Continue accessibility and release-signing work.
+The package identifier and signing certificate are intentionally unchanged. Existing v0.2+ stable-signed test installations should be able to update directly to v0.8 without uninstalling or losing local app data.
